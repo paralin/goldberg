@@ -197,6 +197,7 @@ local common_include = {
     'crash_printer',
     'sdk',
     "overlay_experimental",
+    "pdk"
 }
 
 local x32_deps_include = {
@@ -243,6 +244,8 @@ local common_files = {
     "helpers/common_helpers.cpp", "helpers/common_helpers/**",
     -- helpers/dbg_log
     "helpers/dbg_log.cpp", "helpers/dbg_log/**",
+    -- pdk
+    "pdk/**",
 }
 
 local overlay_files = {
