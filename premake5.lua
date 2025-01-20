@@ -1577,4 +1577,41 @@ project "test_crash_printer_sa_sigaction"
 end
 -- End LINUX ONLY TARGETS
 
+-- Project example_plugin
+project "example_plugin"
+    kind "SharedLib"
+    location "%{wks.location}/%{prj.name}"
+    targetdir("build/" .. os_iden .. "/%{_ACTION}/%{cfg.buildcfg}/example_plugin")
+    targetname "example_plugin_%{cfg.platform}"
+
+        -- include dir
+    ---------
+    -- common include dir
+    -- x32 include dir
+    filter { "platforms:x32", }
+        includedirs {
+            x32_deps_include,
+        }
+
+    -- x64 include dir
+    filter { "platforms:x64", }
+        includedirs {
+            x64_deps_include,
+        }
+
+
+    -- common source & header files
+    ---------
+    filter {} -- reset the filter and remove all active keywords
+    files { -- added to all filters, later defines will be appended
+        -- dll/
+        --"dll/dll/*.h",
+        -- pdk
+        "pdk/*.h",
+        'example_plugin/**'
+    }
+
+
+-- End example_plugin
+
 -- End Workspace

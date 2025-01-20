@@ -1,11 +1,22 @@
 #include "pdk.h"
+#include "dll/client_known_interfaces.h"
 
-/// <summary>
-/// Registering from the Maker
-/// </summary>
-/// <param name="interfaceMakePtr"></param>
-/// <param name="interfaceVersion"></param>
-/// <returns>0 for success, 1 if failed</returns>
+typedef void (*__cdecl PluginCall)();
+
+void PDK::LoadPlugin(HMODULE handle)
+{
+    PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_Load");
+    load();
+    PRINT_DEBUG("Loaded crack file");
+}
+
+void PDK::UnloLoadPlugin(HMODULE handle)
+{
+    PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_UnLoad");
+    load();
+    PRINT_DEBUG("Loaded crack file");
+}
+
 int PDK::RegisterInterface(InterfaceMaker interfaceMakePtr, const char* interfaceVersion)
 {
     if (interfaceMakePtr == NULL)
@@ -18,11 +29,6 @@ int PDK::RegisterInterface(InterfaceMaker interfaceMakePtr, const char* interfac
     return 0;
 }
 
-/// <summary>
-/// Unregistering from the Maker
-/// </summary>
-/// <param name="interfaceMakePtr"></param>
-/// <returns>0 for success, 1 if failed</returns>
 int PDK::UnRegisterInterface(InterfaceMaker interfaceMakePtr)
 {
     if (interfaceMakePtr == NULL)
@@ -45,6 +51,10 @@ void* PDK::MakeInterface(HSteamUser hSteamUser, HSteamPipe hSteamPipe, const cha
     return nullptr;
 }
 
+int PDK::GetPDKVersion()
+{
+    return 1;
+}
 
 void* TestCreate(HSteamUser hSteamUser, HSteamPipe hSteamPipe)
 {
