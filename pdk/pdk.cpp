@@ -9,7 +9,7 @@ void PDK::LoadPlugin(void* handle)
     HMODULE mod = reinterpret_cast<HMODULE>(handle);
     PluginCall load = (PluginCall)GetProcAddress(mod, "GBE_Load");
 #else
-    PluginCall load = (PluginCall)dlsym(mod, "GBE_Load");
+    PluginCall load = (PluginCall)dlsym(handle, "GBE_Load");
 #endif
     if (load == NULL)
     {
@@ -25,7 +25,7 @@ void PDK::UnLoadPlugin(void* handle)
     HMODULE mod = reinterpret_cast<HMODULE>(handle);
     PluginCall load = (PluginCall)GetProcAddress(mod, "GBE_UnLoad");
 #else
-    PluginCall load = (PluginCall)dlsym(mod, "GBE_UnLoad");
+    PluginCall load = (PluginCall)dlsym(handle, "GBE_UnLoad");
 #endif
     if (load == NULL)
     {
