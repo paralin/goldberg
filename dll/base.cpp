@@ -329,7 +329,7 @@ static void unload_dlls()
 {
     for (auto lib_handle : loaded_libs)
     {
-        PDK::UnloLoadPlugin(lib_handle);
+        PDK::UnLoadPlugin(lib_handle);
 #ifdef __WINDOWS__
         FreeLibrary(reinterpret_cast<HMODULE>(lib_handle));
 #else

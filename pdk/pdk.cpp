@@ -19,7 +19,7 @@ void PDK::LoadPlugin(void* handle)
     PRINT_DEBUG("Loaded plugin file");
 }
 
-void PDK::UnloLoadPlugin(void* handle)
+void PDK::UnLoadPlugin(void* handle)
 {
 #ifdef __WINDOWS__
     HMODULE mod = reinterpret_cast<HMODULE>(handle);

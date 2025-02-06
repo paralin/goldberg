@@ -10,10 +10,9 @@ class PDK
 {
     static inline std::map<void* /* interfaceMaker */, const char* /* interfaceVersion */> interfaceMap;
 
-
-    static void LoadPlugin(void* handle);
-    static void UnloLoadPlugin(void* handle);
 public:
+    static void LoadPlugin(void* handle);
+    static void UnLoadPlugin(void* handle);
 
     /// <summary>
     /// Registering from the Maker
