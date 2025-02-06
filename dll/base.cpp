@@ -279,7 +279,7 @@ unsigned int file_size_(const std::string &full_path)
 
 
 #ifdef EMU_EXPERIMENTAL_BUILD
-#include "pdk/pdk.h"
+#include "../pdk/pdk.h"
 static std::vector<void*> loaded_libs{};
 
 static void load_dlls()
