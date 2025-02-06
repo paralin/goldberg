@@ -7,14 +7,14 @@ void PDK::LoadPlugin(HMODULE handle)
 {
     PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_Load");
     load();
-    PRINT_DEBUG("Loaded crack file");
+    PRINT_DEBUG("Loaded plugin file");
 }
 
 void PDK::UnloLoadPlugin(HMODULE handle)
 {
     PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_UnLoad");
     load();
-    PRINT_DEBUG("Loaded crack file");
+    PRINT_DEBUG("Loaded plugin file");
 }
 
 int PDK::RegisterInterface(InterfaceMaker interfaceMakePtr, const char* interfaceVersion)
@@ -25,7 +25,7 @@ int PDK::RegisterInterface(InterfaceMaker interfaceMakePtr, const char* interfac
         return 1;
     if (!client_known_interfaces.count(interfaceVersion))
         return 1;
-    interfaceMap.insert(std::make_pair(interfaceMakePtr, interfaceVersion));
+    interfaceMap.insert(std::make_pair((void*)interfaceMakePtr, interfaceVersion));
     return 0;
 }
 
@@ -34,7 +34,7 @@ int PDK::UnRegisterInterface(InterfaceMaker interfaceMakePtr)
     if (interfaceMakePtr == NULL)
         return 1;
 
-    interfaceMap.erase(interfaceMakePtr);
+    interfaceMap.erase((void*)interfaceMakePtr);
     return 0;
 }
 
@@ -54,16 +54,4 @@ void* PDK::MakeInterface(HSteamUser hSteamUser, HSteamPipe hSteamPipe, const cha
 int PDK::GetPDKVersion()
 {
     return 1;
-}
-
-void* TestCreate(HSteamUser hSteamUser, HSteamPipe hSteamPipe)
-{
-    return nullptr;
-}
-
-void Register()
-{
-    // Which one should be good? idk
-    //PDK::RegisterInterface(TestCreate, "STEAMAPPLIST_INTERFACE_VERSION001");
-    //PDK::RegisterInterface(&TestCreate, "STEAMAPPLIST_INTERFACE_VERSION001");
 }
