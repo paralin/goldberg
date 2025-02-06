@@ -11,8 +11,8 @@ class PDK
     static inline std::map<void* /* interfaceMaker */, const char* /* interfaceVersion */> interfaceMap;
 
 
-    static void LoadPlugin(HMODULE handle);
-    static void UnloLoadPlugin(HMODULE handle);
+    static void LoadPlugin(void* handle);
+    static void UnloLoadPlugin(void* handle);
 public:
 
     /// <summary>

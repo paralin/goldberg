@@ -3,16 +3,34 @@
 
 typedef void (*__cdecl PluginCall)();
 
-void PDK::LoadPlugin(HMODULE handle)
+void PDK::LoadPlugin(void* handle)
 {
-    PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_Load");
+#ifdef __WINDOWS__
+    HMODULE mod = reinterpret_cast<HMODULE>(handle);
+    PluginCall load = (PluginCall)GetProcAddress(mod, "GBE_Load");
+#else
+    PluginCall load = (PluginCall)dlsym(mod, "GBE_Load");
+#endif
+    if (load == NULL)
+    {
+        return;
+    }
     load();
     PRINT_DEBUG("Loaded plugin file");
 }
 
-void PDK::UnloLoadPlugin(HMODULE handle)
+void PDK::UnloLoadPlugin(void* handle)
 {
-    PluginCall load = (PluginCall)GetProcAddress(handle, "GBE_UnLoad");
+#ifdef __WINDOWS__
+    HMODULE mod = reinterpret_cast<HMODULE>(handle);
+    PluginCall load = (PluginCall)GetProcAddress(mod, "GBE_UnLoad");
+#else
+    PluginCall load = (PluginCall)dlsym(mod, "GBE_UnLoad");
+#endif
+    if (load == NULL)
+    {
+        return;
+    }
     load();
     PRINT_DEBUG("Loaded plugin file");
 }

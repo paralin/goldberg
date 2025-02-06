@@ -279,7 +279,7 @@ unsigned int file_size_(const std::string &full_path)
 
 
 #ifdef EMU_EXPERIMENTAL_BUILD
-
+#include "pdk/pdk.h"
 static std::vector<void*> loaded_libs{};
 
 static void load_dlls()
@@ -295,7 +295,8 @@ static void load_dlls()
     std::string path(Local_Storage::get_game_settings_path() + "load_dlls" + PATH_SEPARATOR);
 
     std::vector<std::string> paths(Local_Storage::get_filenames_path(path));
-    for (auto & p: paths) {
+    for (auto & p: paths)
+    {
         std::string full_path(path + p);
         if (!common_helpers::ends_with_i(full_path, LIB_EXTENSION)) continue;
 
@@ -307,10 +308,14 @@ static void load_dlls()
             dlopen(full_path.c_str(), RTLD_NOW | RTLD_LOCAL);
 #endif
 
-        if (lib_handle != nullptr) {
+        if (lib_handle != nullptr)
+        {
             loaded_libs.push_back(reinterpret_cast<void *>(lib_handle));
+            PDK::LoadPlugin(lib_handle);
             PRINT_DEBUG(" LOADED");
-        } else {
+        } 
+        else 
+        {
 #ifdef __WINDOWS__
             PRINT_DEBUG(" FAILED, error code 0x%X", GetLastError());
 #else
@@ -322,7 +327,9 @@ static void load_dlls()
 
 static void unload_dlls()
 {
-    for (auto lib_handle : loaded_libs) {
+    for (auto lib_handle : loaded_libs)
+    {
+        PDK::UnloLoadPlugin(lib_handle);
 #ifdef __WINDOWS__
         FreeLibrary(reinterpret_cast<HMODULE>(lib_handle));
 #else
@@ -333,7 +340,8 @@ static void unload_dlls()
 
 #ifdef __WINDOWS__
 
-struct ips_test {
+struct ips_test
+{
     uint32_t ip_from;
     uint32_t ip_to;
 };
