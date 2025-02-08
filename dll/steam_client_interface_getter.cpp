@@ -317,6 +317,11 @@ ISteamMatchmakingServers *Steam_Client::GetISteamMatchmakingServers( HSteamUser 
     report_missing_impl_and_exit(pchVersion, EMU_FUNC_NAME);
 }
 
+
+#ifdef EMU_EXPERIMENTAL_BUILD
+#include "../pdk/pdk.h"
+#endif
+
 // returns the a generic interface
 void *Steam_Client::GetISteamGenericInterface( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion )
 {
@@ -334,6 +339,17 @@ void *Steam_Client::GetISteamGenericInterface( HSteamUser hSteamUser, HSteamPipe
             if (!hSteamUser) return NULL;
         }
     }
+
+    // !! PDK !!
+#ifdef EMU_EXPERIMENTAL_BUILD
+    void* pdk_interface = PDK::MakeInterface(hSteamUser, hSteamPipe, pchVersion);
+    if (pdk_interface != NULL)
+    {
+        return pdk_interface;
+    }
+#endif
+    // !! PDK !! 
+
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // NOTE: you must try to read the one with the most characters first
