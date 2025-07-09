@@ -19,6 +19,9 @@
 #include "dll/steam_app_ids.h"
 #include <fstream>
 
+// Global Steam ID call counter for savegame system
+uint32 Settings::global_steamid_call_count = 0;
+
 
 std::string Settings::sanitize(const std::string &name)
 {
@@ -85,7 +88,6 @@ Settings::Settings(CSteamID steam_id, CGameID game_id, const std::string &name, 
     this->language = lang;
 
     this->offline = offline;
-    this->encrypted_app_ticket_token = ""; // Initialize token field
 }
 
 // user id
@@ -98,6 +100,22 @@ CSteamID Settings::get_local_steam_id()
 CGameID Settings::get_local_game_id()
 {
     return game_id;
+}
+
+// alt or local steam id
+CSteamID Settings::get_current_steam_id()
+{
+    global_steamid_call_count++;
+
+    if (alt_steamid_count == 0 || !alt_steamid.IsValid()) {
+        return steam_id;
+    }
+
+    if (global_steamid_call_count > alt_steamid_count) {
+        return alt_steamid;
+    }
+
+    return steam_id;
 }
 
 const char *Settings::get_local_name()
@@ -426,33 +444,4 @@ bool Settings::hasOverlayAutoAcceptInviteFromFriend(uint64_t friend_id) const
 size_t Settings::overlayAutoAcceptInvitesCount() const
 {
     return auto_accept_overlay_invites_friends.size();
-}
-
-// Load token from configs.user.ini
-bool Settings::load_token_from_config()
-{
-    encrypted_app_ticket_token.clear();
-    
-    std::string config_path = Local_Storage::get_game_settings_path() + "configs.user.ini";
-    PRINT_DEBUG("Attempting to read token from %s\n", config_path.c_str());
-    
-    std::ifstream config_file(utf8_decode(config_path));
-    if (!config_file.is_open()) {
-        PRINT_DEBUG("Failed to open configs.user.ini for token reading\n");
-        return false;
-    }
-    
-    std::string line;
-    while (std::getline(config_file, line)) {
-        // Look for "token=" at the beginning of line
-        if (line.find("token=") == 0) {
-            // Token found - extract everything after "token="
-            encrypted_app_ticket_token = line.substr(6); // "token=" is 6 characters long
-            PRINT_DEBUG("Found token in configs.user.ini, length: %zu\n", encrypted_app_ticket_token.length());
-            return true;
-        }
-    }
-    
-    PRINT_DEBUG("No token found in configs.user.ini\n");
-    return false;
 }

@@ -86,8 +86,10 @@ bool Steam_User::BConnected()
 CSteamID Steam_User::GetSteamID()
 {
     PRINT_DEBUG_ENTRY();
-    CSteamID id = settings->get_local_steam_id();
-    
+    CSteamID id = settings->get_current_steam_id();
+
+    PRINT_DEBUG("GetSteamID() call #%u, returning %llu", settings->global_steamid_call_count, id.ConvertToUint64());
+
     return id;
 }
 
@@ -764,30 +766,23 @@ bool Steam_User::GetEncryptedAppTicket( void *pTicket, int cbMaxTicket, uint32 *
     PRINT_DEBUG("%i %p %p", cbMaxTicket, pTicket, pcbTicket);
     
     // Try to load a token from configs.user.ini first
-    if (settings->load_token_from_config() && !settings->encrypted_app_ticket_token.empty()) {
+    if (!settings->customEncryptedAppTicket.empty()) {
         PRINT_DEBUG("Using token from configs.user.ini\n");
         
-        // Decode token from Base64
-        std::vector<uint8_t> ticket_data = base64_decode(settings->encrypted_app_ticket_token);
-        
-        if (ticket_data.empty()) {
-            PRINT_DEBUG("Failed to decode token from base64\n");
-        } else {
-            uint32 ticket_size = static_cast<uint32>(ticket_data.size());
-            if (pcbTicket) *pcbTicket = ticket_size;
-            
-            if (cbMaxTicket <= 0) {
-                if (!pcbTicket) return false;
-                return true;
-            }
-            
-            if (!pTicket) return false;
-            if (ticket_size > static_cast<uint32>(cbMaxTicket)) return false;
-            
-            memcpy(pTicket, ticket_data.data(), ticket_size);
-            PRINT_DEBUG("Successfully used token from configs.user.ini (%u bytes)\n", ticket_size);
+        uint32 ticket_size = static_cast<uint32>(settings->customEncryptedAppTicket.size());
+        if (pcbTicket) *pcbTicket = ticket_size;
+
+        if (cbMaxTicket <= 0) {
+            if (!pcbTicket) return false;
             return true;
         }
+
+        if (!pTicket) return false;
+        if (ticket_size > static_cast<uint32>(cbMaxTicket)) return false;
+
+        memcpy(pTicket, settings->customEncryptedAppTicket.data(), ticket_size);
+        PRINT_DEBUG("Successfully used token from configs.user.ini (%u bytes)\n", ticket_size);
+        return true;
     }
     
     // Fallback to the standard ticket generation if no token was found or decoded

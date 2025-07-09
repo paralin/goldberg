@@ -16,6 +16,7 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "dll/settings_parser.h"
+#include "dll/base64.h"
 
 #define SI_CONVERT_GENERIC
 #define SI_SUPPORT_IOSTREAMS
@@ -660,6 +661,38 @@ static CSteamID parse_user_steam_id(class Local_Storage *local_storage)
     }
 
     return user_id;
+}
+
+// user::general::alt_steamid
+static CSteamID parse_alt_steam_id(class Local_Storage* local_storage)
+{
+    CSteamID alt_steam_id((uint64)std::atoll(ini.GetValue("user::general", "alt_steamid", "0")));
+    if (!alt_steam_id.IsValid()) {
+        return CSteamID();
+    }
+
+    PRINT_DEBUG("Alt Steam ID: %llu", alt_steam_id);
+    return alt_steam_id;
+}
+
+// user::general::alt_steamid_count
+static uint32 parse_alt_steamid_count(class Local_Storage* local_storage)
+{
+    uint32 count = static_cast<uint32>(ini.GetLongValue("user::general", "alt_steamid_count"));
+    if (count < 0) {
+        count = 0;
+    }
+    PRINT_DEBUG("Alt Steam ID count: %u", (uint32)count);
+    return (uint32)count;
+}
+
+// user::general::ticket
+static void parse_encrypted_app_ticket(Settings* settings)
+{
+    std::string ticketValue(common_helpers::string_strip(ini.GetValue("user::general", "ticket", "")));
+    if (ticketValue.size()) {
+        settings->customEncryptedAppTicket = base64_decode(ticketValue);
+    }
 }
 
 // user::general::language
@@ -1767,6 +1800,11 @@ uint32 create_localstorage_settings(Settings **settings_client_out, Settings **s
     std::string name(parse_account_name(local_storage));
     // Steam ID
     CSteamID user_id = parse_user_steam_id(local_storage);
+    
+    // Alt Steam ID for savegame system
+    CSteamID alt_steamid = parse_alt_steam_id(local_storage);
+    uint32 alt_steamid_count = parse_alt_steamid_count(local_storage);
+
     // Language
     std::string language(parse_current_language(local_storage));
     // Supported languages, this will change the current language if needed
@@ -1778,6 +1816,11 @@ uint32 create_localstorage_settings(Settings **settings_client_out, Settings **s
     }
     Settings *settings_client = new Settings(user_id, CGameID(appid), name, language, steam_offline_mode);
     Settings *settings_server = new Settings(generate_steam_id_server(), CGameID(appid), name, language, steam_offline_mode);
+
+    settings_client->alt_steamid = alt_steamid;
+    settings_client->alt_steamid_count = alt_steamid_count;
+    settings_server->alt_steamid = alt_steamid;
+    settings_server->alt_steamid_count = alt_steamid_count;
 
     // listen port
     settings_client->set_port(port);
@@ -1810,6 +1853,8 @@ uint32 create_localstorage_settings(Settings **settings_client_out, Settings **s
     load_gamecontroller_settings(settings_client);
     parse_auto_accept_invite(settings_client, settings_server);
     parse_ip_country(local_storage, settings_client, settings_server);
+
+    parse_encrypted_app_ticket(settings_client);
     
     // try local "steam_settings" then saves path, on second trial force load defaults
     if (!parse_branches_file(steam_settings_path, false, settings_client, settings_server, local_storage)) {
