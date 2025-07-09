@@ -331,5 +331,3 @@ package_linux.sh <build_folder>
 ```
 `build_folder` is any folder inside `build/linux`, for example: `gmake2/release`  
 The above example will create a compressed `.tar` archive inside `build/package/linux/`
-
----
