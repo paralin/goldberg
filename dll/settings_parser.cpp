@@ -679,19 +679,17 @@ static CSteamID parse_alt_steam_id(class Local_Storage* local_storage)
 static uint32 parse_alt_steamid_count(class Local_Storage* local_storage)
 {
     uint32 count = static_cast<uint32>(ini.GetLongValue("user::general", "alt_steamid_count"));
-    if (count < 0) {
-        count = 0;
-    }
     PRINT_DEBUG("Alt Steam ID count: %u", (uint32)count);
     return (uint32)count;
 }
 
 // user::general::ticket
-static void parse_encrypted_app_ticket(Settings* settings)
+static void parse_encrypted_app_ticket(class Settings *settings_client, class Settings *settings_server)
 {
     std::string ticketValue(common_helpers::string_strip(ini.GetValue("user::general", "ticket", "")));
     if (ticketValue.size()) {
-        settings->customEncryptedAppTicket = base64_decode(ticketValue);
+        settings_client->customEncryptedAppTicket = base64_decode(ticketValue);
+        settings_server->customEncryptedAppTicket = base64_decode(ticketValue);
     }
 }
 
@@ -1854,7 +1852,7 @@ uint32 create_localstorage_settings(Settings **settings_client_out, Settings **s
     parse_auto_accept_invite(settings_client, settings_server);
     parse_ip_country(local_storage, settings_client, settings_server);
 
-    parse_encrypted_app_ticket(settings_client);
+    parse_encrypted_app_ticket(settings_client, settings_server);
     
     // try local "steam_settings" then saves path, on second trial force load defaults
     if (!parse_branches_file(steam_settings_path, false, settings_client, settings_server, local_storage)) {
