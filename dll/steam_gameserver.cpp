@@ -201,6 +201,7 @@ void Steam_GameServer::LogOff()
         call_servers_disconnected = true;
     }
 
+    policy_response_called = false;
     logged_in = false;
 }
 
@@ -960,10 +961,15 @@ bool Steam_GameServer::GSSendUserStatusResponse( CSteamID steamID, int nSecondsC
 
 bool Steam_GameServer::Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion )
 {
-    PRINT_DEBUG_TODO();
+    PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    return false;
+    set_version(pchVersion);
+    server_data.set_game_dir(pchGameDir);
+    flags = unServerFlags;
+
+    UpdateServerStatus(cPlayers, cPlayersMax, cBotPlayers, pchServerName, "", pchMapName);
+    return true;
 }
 
 bool Steam_GameServer::GSUpdateStatus( int cPlayers, int cPlayersMax, int cBotPlayers, const char *pchServerName, const char *pchMapName )
