@@ -688,8 +688,9 @@ static void parse_encrypted_app_ticket(class Settings *settings_client, class Se
 {
     std::string ticketValue(common_helpers::string_strip(ini.GetValue("user::general", "ticket", "")));
     if (ticketValue.size()) {
-        settings_client->customEncryptedAppTicket = base64_decode(ticketValue);
-        settings_server->customEncryptedAppTicket = base64_decode(ticketValue);
+        std::vector<uint8_t> ticket = base64_decode(ticketValue);
+        settings_client->customEncryptedAppTicket = ticket;
+        settings_server->customEncryptedAppTicket = ticket;
     }
 }
 
