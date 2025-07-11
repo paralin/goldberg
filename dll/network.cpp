@@ -114,6 +114,8 @@ static void get_broadcast_info(uint16 port)
                     }
                 }
 
+            // TODO: IPv6
+
             pAdapter = pAdapter->Next;
         }
     }
@@ -133,6 +135,8 @@ static void get_broadcast_info(uint16 port)
      */
     number_broadcasts = 0;
     sock_t sock = 0;
+
+    // TODO: IPv6
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         return;
@@ -291,18 +295,29 @@ static void reset_last_error()
 
 static int send_packet_to(sock_t sock, IP_PORT ip_port, char *data, unsigned long length)
 {
-    PRINT_DEBUG("send: %lu %hhu.%hhu.%hhu.%hhu:%hu", length, ((unsigned char *)&ip_port.ip)[0], ((unsigned char *)&ip_port.ip)[1], ((unsigned char *)&ip_port.ip)[2], ((unsigned char *)&ip_port.ip)[3], htons(ip_port.port));
-    struct sockaddr_storage addr;
-    struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
+    //PRINT_DEBUG("send: %lu %hhu.%hhu.%hhu.%hhu:%hu", length, ((unsigned char *)&ip_port.ip)[0], ((unsigned char *)&ip_port.ip)[1], ((unsigned char *)&ip_port.ip)[2], ((unsigned char *)&ip_port.ip)[3], htons(ip_port.port));
 
+    struct sockaddr_storage addr;
+
+    struct sockaddr_in *addr4 = (struct sockaddr_in *)&addr;
+    struct sockaddr_in6 *addr6 = (struct sockaddr_in6 *)&addr;
 #if defined(STEAM_WIN32) 
     int addrsize = (int)sizeof(struct sockaddr_in); 
  #else 
     socklen_t addrsize = (socklen_t)sizeof(struct sockaddr_in);
- #endif 
-    addr4->sin_family = AF_INET;
-    addr4->sin_addr.s_addr = ip_port.ip;
-    addr4->sin_port = ip_port.port;
+ #endif
+    if (ip_port.ip.m_eType == k_ESteamIPTypeIPv4)
+    {
+        addr4->sin_family = AF_INET;
+        addr4->sin_addr.s_addr = ip_port.ip.m_unIPv4;
+        addr4->sin_port = ip_port.port;
+    }
+    if (ip_port.ip.m_eType == k_ESteamIPTypeIPv6)
+    {
+        addr6->sin6_family = AF_INET6;
+        addr6->sin6_addr.Byte = ip_port.ip.m_rgubIPv6;
+        addr6->sin6_port = ip_port.port;
+    }
 
     return sendto(sock, data, length, 0, (struct sockaddr *)&addr, addrsize);
 }
@@ -318,9 +333,21 @@ static int receive_packet(sock_t sock, IP_PORT *ip_port, char *data, unsigned lo
 
     int ret = recvfrom(sock, (char *) data, max_length, 0, (struct sockaddr *)&addr, &addrlen);
     if (ret >= 0) {
-        struct sockaddr_in *addr_in = (struct sockaddr_in *)&addr;
-        ip_port->ip = addr_in->sin_addr.s_addr;
-        ip_port->port = addr_in->sin_port;
+        if (addr->sa_family == AF_INET)
+        {
+            struct sockaddr_in *addr_in = (struct sockaddr_in *)&addr;
+            ip_port->ip.m_eType = k_ESteamIPTypeIPv4;
+            ip_port->ip.m_unIPv4 = addr_in->sin_addr.s_addr;
+            ip_port->port = addr_in->sin_port;
+        }
+        if (addr->sa_family == AF_INET6)
+        {
+            struct sockaddr6_in *addr_in = (struct sockaddr6_in *)&addr;
+            ip_port->ip.m_eType = k_ESteamIPTypeIPv6;
+            // Is that good or should we MemCpy it?
+            ip_port->ip.m_rgubIPv6 = addr_in->sin6_addr;
+            ip_port->port = addr_in->sin_port;
+        }
         return ret;
     }
 
@@ -335,8 +362,10 @@ static bool send_broadcasts(sock_t sock, uint16 port, char *data, unsigned long 
         get_broadcast_info(port);
         std::vector<uint32_t> lower_range(lower_range_ips, lower_range_ips + number_broadcasts), upper_range(upper_range_ips, upper_range_ips + number_broadcasts);
         for(auto &addr : *custom_broadcasts) {
-            lower_range.push_back(addr.ip);
-            upper_range.push_back(addr.ip);
+            if (addr.ip.m_eType != k_ESteamIPTypeIPv4)
+                continue;
+            lower_range.push_back(addr.ip.m_unIPv4);
+            upper_range.push_back(addr.ip.m_unIPv4);
         }
 
         set_whitelist_ips(lower_range.data(), upper_range.data(), static_cast<unsigned int>(lower_range.size()));
@@ -344,7 +373,8 @@ static bool send_broadcasts(sock_t sock, uint16 port, char *data, unsigned long 
     }
 
     IP_PORT main_broadcast;
-    main_broadcast.ip = INADDR_BROADCAST;
+    main_broadcast.ip.m_eType = k_ESteamIPTypeIPv4;
+    main_broadcast.ip.m_unIPv4 = INADDR_BROADCAST;
     main_broadcast.port = port;
     int ret = send_packet_to(sock, main_broadcast, data, length);
 
@@ -390,6 +420,11 @@ static bool bind_socket(sock_t sock, uint16 port)
     addr4->sin_family = AF_INET;
     addr4->sin_port = htons(port);
     addr4->sin_addr.s_addr = 0;
+    struct sockaddr6_in *addr_in = (struct sockaddr6_in *)&addr;
+            ip_port->ip.m_eType = k_ESteamIPTypeIPv6;
+            // Is that good or should we MemCpy it?
+            ip_port->ip.m_rgubIPv6 = addr_in->sin6_addr;
+            ip_port->port = addr_in->sin_port;
 
     return !bind(sock, (struct sockaddr *)&addr, addrsize);
 }
@@ -929,8 +964,10 @@ void Networking::send_announce_broadcasts()
     std::vector<char> buffer(size);
     msg.SerializeToArray(&buffer[0], static_cast<int>(size));
     send_broadcasts(udp_socket, htons(DEFAULT_PORT), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
+    send_broadcasts(udpv6_socket, htons(DEFAULT_PORT), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
     if (udp_port != DEFAULT_PORT) {
         send_broadcasts(udp_socket, htons(udp_port), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
+        send_broadcasts(udpv6_socket, htons(udp_port), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
     }
 
     last_broadcast = std::chrono::high_resolution_clock::now();
@@ -969,7 +1006,7 @@ void Networking::Run()
             len = client->steam_gameserver->GetNextOutgoingPacket(data, sizeof(data), &ip_port.ip, &ip_port.port);
 
             PRINT_DEBUG("sending Source Query server info");
-            addr.sin_addr.s_addr = htonl(ip_port.ip);
+            addr.sin_addr.s_addr = htonl(ip_port.ip.m_unIPv4);
             addr.sin_port        = htons(ip_port.port);
             sendto(query_socket, data, len, 0, (sockaddr*)&addr, sizeof(addr));
         }
@@ -977,8 +1014,8 @@ void Networking::Run()
 
     PRINT_DEBUG("RECV UDP");
     while((len = receive_packet(udp_socket, &ip_port, data, sizeof(data))) >= 0) {
-        PRINT_DEBUG("recv %i %hhu.%hhu.%hhu.%hhu:%hu", len,
-            ((unsigned char *)&ip_port.ip)[0], ((unsigned char *)&ip_port.ip)[1], ((unsigned char *)&ip_port.ip)[2], ((unsigned char *)&ip_port.ip)[3], htons(ip_port.port));
+        //PRINT_DEBUG("recv %i %hhu.%hhu.%hhu.%hhu:%hu", len,
+        //    ((unsigned char *)&ip_port.ip)[0], ((unsigned char *)&ip_port.ip)[1], ((unsigned char *)&ip_port.ip)[2], ((unsigned char *)&ip_port.ip)[3], htons(ip_port.port));
         Common_Message msg;
         if (msg.ParseFromArray(data, len)) {
             if (msg.source_id()) {
@@ -987,7 +1024,33 @@ void Networking::Run()
                 } else if (msg.has_low_level()) {
                     handle_low_level_udp(&msg, ip_port);
                 } else {
-                    msg.set_source_ip(ntohl(ip_port.ip));
+                    if (ip_port.ip.m_eType == k_ESteamIPTypeIPv4)
+                        msg.set_source_ip(ntohl(ip_port.ip.m_unIPv4));
+                    else
+                        msg.set_source_ip(ip_port.ip.m_rgubIPv6);
+                    msg.set_source_port(ntohs(ip_port.port));
+                    do_callbacks_message(&msg);
+                }
+            }
+        }
+    }
+
+    PRINT_DEBUG("RECV UDPV6");
+    while((len = receive_packet(udpv6_socket, &ip_port, data, sizeof(data))) >= 0) {
+        //PRINT_DEBUG("recv %i %hhu.%hhu.%hhu.%hhu:%hu", len,
+        //    ((unsigned char *)&ip_port.ip)[0], ((unsigned char *)&ip_port.ip)[1], ((unsigned char *)&ip_port.ip)[2], ((unsigned char *)&ip_port.ip)[3], htons(ip_port.port));
+        Common_Message msg;
+        if (msg.ParseFromArray(data, len)) {
+            if (msg.source_id()) {
+                if (msg.has_announce()) {
+                    handle_announce(&msg, ip_port);
+                } else if (msg.has_low_level()) {
+                    handle_low_level_udp(&msg, ip_port);
+                } else {
+                    if (ip_port.ip.m_eType == k_ESteamIPTypeIPv4)
+                        msg.set_source_ip(ntohl(ip_port.ip.m_unIPv4));
+                    else
+                        msg.set_source_ip(ip_port.ip.m_rgubIPv6);
                     msg.set_source_port(ntohs(ip_port.port));
                     do_callbacks_message(&msg);
                 }
@@ -1194,7 +1257,7 @@ bool Networking::sendToIPPort(Common_Message *msg, uint32 ip, uint16 port, bool 
     bool is_local_ip = ((ip >> 24) == 0x7F);
     uint32_t local_ip = getIP(ids.front());
     PRINT_DEBUG("%X %u %X", ip, is_local_ip, local_ip);
-    //TODO: actually send to ip/port
+
     for (auto &conn: connections) {
         if (ntohl(conn.tcp_ip_port.ip) == ip || (is_local_ip && ntohl(conn.tcp_ip_port.ip) == local_ip)) {
             for (auto &steam_id : conn.ids) {
@@ -1252,6 +1315,7 @@ bool Networking::sendTo(Common_Message *msg, bool reliable, Connection *conn)
             std::vector<char> buffer(size, 0);
             msg->SerializeToArray(&buffer[0], static_cast<int>(size));
             send_packet_to(udp_socket, conn->udp_ip_port, &buffer[0], static_cast<unsigned long>(size));
+            send_packet_to(udpv6_socket, conn->udp_ip_port, &buffer[0], static_cast<unsigned long>(size));
             ret = true;
         }
     }

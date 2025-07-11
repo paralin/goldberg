@@ -2,6 +2,11 @@ syntax = "proto3";
 
 option optimize_for = LITE_RUNTIME;
 
+oneof ip_addr {
+    uint32 v4 = 1;
+    bytes v6 = 2;
+}
+
 message Announce {
     enum Types {
         PING = 0;
@@ -13,7 +18,7 @@ message Announce {
 
     message Other_Peers {
         uint64 id = 1;
-        uint32 ip = 2;
+        ip_addr ip = 2;
         uint32 udp_port = 3;
         uint32 appid = 4;
     }
@@ -38,7 +43,7 @@ message Lobby {
 
     message Gameserver {
         uint64 id = 1;
-        uint32 ip = 2;
+        ip_addr ip = 2;
         uint32 port = 3;
         uint32 num_update = 4;
     }
@@ -164,7 +169,7 @@ message Gameserver {
     uint32 version = 19;
     bytes game_dir = 20;
 
-    uint32 ip = 32;
+    ip_addr ip = 32;
     uint32 port = 33;
     uint32 query_port = 34;
     uint32 appid = 35;
@@ -332,7 +337,7 @@ message Common_Message {
         Steam_User_Stats_Messages steam_user_stats_messages = 18;
     }
 
-    uint32 source_ip = 128;
+    ip_addr source_ip = 128;
     uint32 source_port = 129;
 }
 

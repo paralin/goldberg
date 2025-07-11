@@ -39,12 +39,14 @@ static inline bool protobuf_message_equal(
 
 
 struct IP_PORT {
-    uint32 ip{};
+    SteamIPAddress_t ip{};
     uint16 port{};
+    /*
     bool operator <(const IP_PORT& other) const
     {
         return (ip < other.ip) || (ip == other.ip && port < other.port);
     }
+    */
 };
 
 struct Network_Callback {
@@ -100,6 +102,7 @@ class Networking
     bool query_alive{};
     std::chrono::high_resolution_clock::time_point last_run{};
     sock_t query_socket, udp_socket{}, tcp_socket{};
+    sock_t udpv6_socket{}, tcpv6_socket{};
     uint16 udp_port{}, tcp_port{};
     uint32 own_ip{};
     std::vector<struct Connection> connections{};
@@ -156,8 +159,8 @@ public:
     bool sendToAll(Common_Message *msg, bool reliable);
     
     // send to active/current connections with specific ip/port, no need to call set_dest_id(), this is done automatically
-    //TODO: actually send to ip/port
     bool sendToIPPort(Common_Message *msg, uint32 ip, uint16 port, bool reliable);
+    bool sendToIPPort(Common_Message *msg, uint8 *ip, uint16 port, bool reliable);
 
     bool setCallback(Callback_Ids id, CSteamID steam_id, void (*message_callback)(void *object, Common_Message *msg), void *object);
     void rmCallback(Callback_Ids id, CSteamID steam_id, void (*message_callback)(void *object, Common_Message *msg), void *object);
