@@ -381,7 +381,6 @@ table_append(deps_link, {
     "absl_vlog_config_internal"                   .. static_postfix,
     lib_prefix .."utf8_range"                     .. static_postfix,
     lib_prefix .."utf8_validity"                  .. static_postfix,
-    lib_prefix .."upb"                            .. static_postfix,
 })
 
 local common_link_win = {
