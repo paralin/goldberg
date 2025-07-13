@@ -732,12 +732,12 @@ SteamAPICall_t Steam_User::RequestEncryptedAppTicket( void *pDataToInclude, int 
     ticket.TicketV2.TicketIssueTime = static_cast<uint32>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
     ticket.TicketV2.TicketValidityEnd = ticket.TicketV2.TicketIssueTime + (21 * 24 * 60 * 60);
 
-    for (int i = 0; i < 140; ++i)
+    for (unsigned int i = 0; i < 140; ++i)
     {
         AppId_t appid{};
         bool available{};
         std::string name{};
-        if (!settings->getDLC(appid, appid, available, name)) break;
+        if (!settings->getDLC(i, appid, available, name)) break;
         ticket.TicketV4.AppIDs.emplace_back(appid);
     }
 
