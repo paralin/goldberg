@@ -562,9 +562,15 @@ void Steam_GameServer::SetGameType( const char *pchGameType )
 // Ask if a user has a specific achievement for this game, will get a callback on reply
 bool Steam_GameServer::BGetUserAchievementStatus( CSteamID steamID, const char *pchAchievementName )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%llu %s", steamID.ConvertToUint64(), pchAchievementName);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
-    return false;
+
+    GSClientAchievementStatus_t data = {};
+    data.m_bUnlocked = true;
+    data.m_SteamID = steamID.ConvertToUint64();
+    strncpy(data.m_pchAchievement, pchAchievementName, sizeof(data.m_pchAchievement) - 1);
+    callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+    return true;
 }
 
 // New auth system APIs - do not mix with the old auth system APIs.
