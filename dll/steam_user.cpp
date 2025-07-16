@@ -28,8 +28,8 @@ Steam_User::Steam_User(Settings *settings, Local_Storage *local_storage, class N
     this->callbacks = callbacks;
     this->callback_results = callback_results;
     
-    recording = false;
     auth_manager = new Auth_Manager(settings, network, callbacks);
+    voicechat = new VoiceChat();
 }
 
 Steam_User::~Steam_User()
