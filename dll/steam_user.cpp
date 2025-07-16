@@ -147,7 +147,17 @@ bool Steam_User::SetEmail( const char *pchEmail )
 int Steam_User::GetSteamGameConnectToken( void *pBlob, int cbMaxBlob )
 {
     PRINT_DEBUG_ENTRY();
-    return 0;
+    std::lock_guard<std::recursive_mutex> lock(global_mutex);
+
+    if (cbMaxBlob < STEAM_TICKET_MIN_SIZE) return 0;
+    if (!pBlob) return 0;
+
+    uint32 out_size = STEAM_AUTH_TICKET_SIZE;
+    auth_manager->getTicketData(pBlob, cbMaxBlob, &out_size);
+
+    if (out_size > STEAM_AUTH_TICKET_SIZE)
+        return 0;
+    return out_size;
 }
 
 bool Steam_User::SetRegistryString( EConfigSubTree eRegistrySubTree, const char *pchKey, const char *pchValue )
@@ -262,19 +272,18 @@ bool Steam_User::GetRegistryInt( EConfigSubTree eRegistrySubTree, const char *pc
 //
 // return value - returns the number of bytes written to pBlob. If the return is 0, then the buffer passed in was too small, and the call has failed
 // The contents of pBlob should then be sent to the game server, for it to use to complete the authentication process.
-
-//steam returns 206 bytes
-#define INITIATE_GAME_CONNECTION_TICKET_SIZE 206
-
 int Steam_User::InitiateGameConnection( void *pAuthBlob, int cbMaxAuthBlob, CSteamID steamIDGameServer, uint32 unIPServer, uint16 usPortServer, bool bSecure )
 {
     PRINT_DEBUG("%i %llu %u %u %u %p", cbMaxAuthBlob, steamIDGameServer.ConvertToUint64(), unIPServer, usPortServer, bSecure, pAuthBlob);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
-    if (cbMaxAuthBlob < INITIATE_GAME_CONNECTION_TICKET_SIZE) return 0;
+
+    if (cbMaxAuthBlob < STEAM_TICKET_MIN_SIZE) return 0;
     if (!pAuthBlob) return 0;
-    uint32 out_size = INITIATE_GAME_CONNECTION_TICKET_SIZE;
-    auth_manager->getTicketData(pAuthBlob, INITIATE_GAME_CONNECTION_TICKET_SIZE, &out_size);
-    if (out_size > INITIATE_GAME_CONNECTION_TICKET_SIZE)
+
+    uint32 out_size = STEAM_AUTH_TICKET_SIZE;
+    auth_manager->getTicketData(pAuthBlob, cbMaxAuthBlob, &out_size);
+
+    if (out_size > STEAM_AUTH_TICKET_SIZE)
         return 0;
     return out_size;
 }
