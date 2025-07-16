@@ -846,6 +846,8 @@ void Steam_GameServer::RunCallbacks()
         msg.set_source_id(settings->get_local_steam_id().ConvertToUint64());
         if (server_data.appid() == 0)
             server_data.set_appid(settings->get_local_game_id().AppID());
+        if (server_data.mod_dir().empty())
+            server_data.set_mod_dir(server_data.game_dir());
         msg.set_allocated_gameserver(new Gameserver(server_data));
         msg.mutable_gameserver()->set_num_players(auth_manager->countInboundAuth());
         network->sendToAllIndividuals(&msg, true);
