@@ -47,6 +47,27 @@ void Steam_GameServer::set_version(const char *pchVersionString)
 
 }
 
+void Steam_GameServer::add_player(CSteamID steamID)
+{
+    std::pair<CSteamID, Gameserver_Player_Info_t> infos;
+    infos.first = steamID;
+    infos.second.join_time = std::chrono::steady_clock::now();
+    infos.second.score = 0;
+    infos.second.name = "unnamed";
+    players.emplace_back(std::move(infos));
+}
+
+void Steam_GameServer::remove_player(CSteamID steamID)
+{
+    auto player_it = std::find_if(players.begin(), players.end(), [&steamID](std::pair<CSteamID, Gameserver_Player_Info_t> &player) {
+        return player.first == steamID;
+        });
+
+    if (player_it != players.end()) {
+        players.erase(player_it);
+    }
+}
+
 
 Steam_GameServer::Steam_GameServer(class Settings *settings, class Networking *network, class SteamCallBacks *callbacks)
 {
@@ -395,12 +416,7 @@ bool Steam_GameServer::SendUserConnectAndAuthenticate( uint32 unIPClient, const 
     bool res = auth_manager->SendUserConnectAndAuthenticate(unIPClient, pvAuthBlob, cubAuthBlobSize, pSteamIDUser);
 
     if (res) {
-        std::pair<CSteamID, Gameserver_Player_Info_t> infos;
-        infos.first = *pSteamIDUser;
-        infos.second.join_time = std::chrono::steady_clock::now();
-        infos.second.score = 0;
-        infos.second.name = "unnamed";
-        players.emplace_back(std::move(infos));
+        add_player(*pSteamIDUser);
     }
 
     return res;
@@ -422,13 +438,7 @@ CSteamID Steam_GameServer::CreateUnauthenticatedUserConnection()
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     CSteamID bot_id = auth_manager->fakeUser();
-    std::pair<CSteamID, Gameserver_Player_Info_t> infos;
-    infos.first = bot_id;
-    infos.second.join_time = std::chrono::steady_clock::now();
-    infos.second.score = 0;
-    infos.second.name = "unnamed";
-    players.emplace_back(std::move(infos));
-
+    add_player(bot_id);
     return bot_id;
 }
 
@@ -441,16 +451,7 @@ void Steam_GameServer::SendUserDisconnect( CSteamID steamIDUser )
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    auto player_it = std::find_if(players.begin(), players.end(), [&steamIDUser](std::pair<CSteamID, Gameserver_Player_Info_t>& player)
-    {
-        return player.first == steamIDUser;
-    });
-
-    if (player_it != players.end())
-    {
-        players.erase(player_it);
-    }
-
+    remove_player(steamIDUser);
     auth_manager->endAuth(steamIDUser);
 }
 
@@ -597,13 +598,7 @@ EBeginAuthSessionResult Steam_GameServer::BeginAuthSession( const void *pAuthTic
     PRINT_DEBUG("%i %llu", cbAuthTicket, steamID.ConvertToUint64());
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    std::pair<CSteamID, Gameserver_Player_Info_t> infos;
-    infos.first = steamID;
-    infos.second.join_time = std::chrono::steady_clock::now();
-    infos.second.score = 0;
-    infos.second.name = "unnamed";
-    players.emplace_back(std::move(infos));
-
+    add_player(steamID);
     return auth_manager->beginAuth(pAuthTicket, cbAuthTicket, steamID );
 }
 
@@ -614,16 +609,7 @@ void Steam_GameServer::EndAuthSession( CSteamID steamID )
     PRINT_DEBUG("%llu", steamID.ConvertToUint64());
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    auto player_it = std::find_if(players.begin(), players.end(), [&steamID](std::pair<CSteamID, Gameserver_Player_Info_t>& player)
-    {
-        return player.first == steamID;
-    });
-
-    if (player_it != players.end())
-    {
-        players.erase(player_it);
-    }
-
+    remove_player(steamID);
     auth_manager->endAuth(steamID);
 }
 
@@ -918,12 +904,7 @@ bool Steam_GameServer::GSSendSteam2UserConnect( uint32 unUserID, const void *pvR
     bool res = auth_manager->SendSteam2UserConnect(unUserID, pvRawKey, unKeyLen, unIPPublic, usPort, pvCookie, cubCookie, &steam_id);
 
     if (res) {
-        std::pair<CSteamID, Gameserver_Player_Info_t> infos;
-        infos.first = steam_id;
-        infos.second.join_time = std::chrono::steady_clock::now();
-        infos.second.score = 0;
-        infos.second.name = "unnamed";
-        players.emplace_back(std::move(infos));
+        add_player(steam_id);
     }
 
     return res;
@@ -934,8 +915,8 @@ bool Steam_GameServer::GSSendSteam3UserConnect( CSteamID steamID, uint32 unIPPub
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    CSteamID steam_id;
-    return SendUserConnectAndAuthenticate(unIPPublic, pvCookie, cubCookie, &steam_id);
+    CSteamID ticket_steam_id;
+    return SendUserConnectAndAuthenticate(unIPPublic, pvCookie, cubCookie, &ticket_steam_id);
 }
 
 bool Steam_GameServer::GSRemoveUserConnect( uint32 unUserID )
@@ -1059,12 +1040,7 @@ bool Steam_GameServer::GSSendUserConnect( uint32 unUserID, uint32 unIPPublic, ui
     bool res = auth_manager->SendSteam2UserConnect(unUserID, nullptr, 0, unIPPublic, usPort, pvCookie, cubCookie, &steam_id);
 
     if (res) {
-        std::pair<CSteamID, Gameserver_Player_Info_t> infos;
-        infos.first = steam_id;
-        infos.second.join_time = std::chrono::steady_clock::now();
-        infos.second.score = 0;
-        infos.second.name = "unnamed";
-        players.emplace_back(std::move(infos));
+        add_player(steam_id);
     }
 
     return res;
