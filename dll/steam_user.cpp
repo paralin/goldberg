@@ -557,6 +557,7 @@ EVoiceResult Steam_User::DecompressVoice( const void *pCompressed, uint32 cbComp
 {
     PRINT_DEBUG_ENTRY();
     return voicechat->DecompressVoice(pCompressed, cbCompressed, pDestBuffer, cbDestBufferSize, nBytesWritten, nDesiredSampleRate);
+}
 
 EVoiceResult Steam_User::DecompressVoice( const void *pCompressed, uint32 cbCompressed, void *pDestBuffer, uint32 cbDestBufferSize, uint32 *nBytesWritten )
 {
