@@ -103,7 +103,7 @@ ISteamUser *Steam_Client::GetISteamUser( HSteamUser hSteamUser, HSteamPipe hStea
     if (!steam_pipes.count(hSteamPipe)) {
         // Fallback for steamclient_experimental build: if pipe 1 is requested but not found,
         // and we have other valid pipes, continue execution instead of returning NULL
-        if (hSteamPipe == 1 || !steam_pipes.empty()) {
+        if (hSteamPipe !=1 || steam_pipes.empty()) {
             return NULL;
         }
     }
