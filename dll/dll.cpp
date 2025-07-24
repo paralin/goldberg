@@ -215,7 +215,19 @@ static void *create_client_interface(const char *ver)
 
     Steam_Client *client_ptr = get_steam_client();
     if (strstr(ver, "SteamClient") == ver) {
-        if (strcmp(ver, "SteamClient006") == 0) {
+        client_ptr->steamclient_version = atoi(ver + 11);
+
+        if (strcmp(ver, "SteamClient001") == 0) {
+            return static_cast<ISteamClient001 *>(client_ptr);
+        } else if (strcmp(ver, "SteamClient002") == 0) {
+            return static_cast<ISteamClient002 *>(client_ptr);
+        } else if (strcmp(ver, "SteamClient003") == 0) {
+            return static_cast<ISteamClient003 *>(client_ptr);
+        } else if (strcmp(ver, "SteamClient004") == 0) {
+            return static_cast<ISteamClient004 *>(client_ptr);
+        } else if (strcmp(ver, "SteamClient005") == 0) {
+            return static_cast<ISteamClient005 *>(client_ptr);
+        } else if (strcmp(ver, "SteamClient006") == 0) {
             return static_cast<ISteamClient006 *>(client_ptr);
         } else if (strcmp(ver, "SteamClient007") == 0) {
             return static_cast<ISteamClient007 *>(client_ptr);
@@ -1323,6 +1335,16 @@ STEAMCLIENT_API void Steam_FreeLastCallback( HSteamPipe hSteamPipe )
 {
     //PRINT_DEBUG("%i", hSteamPipe);
     SteamAPI_ManualDispatch_FreeLastCallback( hSteamPipe );
+}
+
+bool steamclient_get_callback(HSteamPipe hSteamPipe, CallbackMsg_t *pCallbackMsg)
+{
+    return Steam_BGetCallback(hSteamPipe, pCallbackMsg);
+}
+
+void steamclient_free_callback(HSteamPipe hSteamPipe)
+{
+    return Steam_FreeLastCallback(hSteamPipe);
 }
 
 STEAMCLIENT_API steam_bool Steam_GetAPICallResult( HSteamPipe hSteamPipe, SteamAPICall_t hSteamAPICall, void* pCallback, int cubCallback, int iCallbackExpected, bool* pbFailed )
