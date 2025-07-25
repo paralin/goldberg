@@ -160,6 +160,7 @@ static DWORD Size1_hkcu = sizeof(OrgSteamCDir_hkcu);
 static WCHAR OrgSteamCDir64_hkcu[8192] = { 0 };
 static DWORD Size2_hkcu = sizeof(OrgSteamCDir64_hkcu);
 static DWORD OrgSteamActiveUser_hkcu = 0;
+static DWORD OrgSteamPid_hkcu = 0;
 static WCHAR OrgSteamUniverse_hkcu[8192] = { 0 };
 static DWORD Size4_hkcu = sizeof(OrgSteamUniverse_hkcu);
 static bool patch_registry_hkcu()
@@ -172,7 +173,9 @@ static bool patch_registry_hkcu()
         RegQueryValueExW(Registrykey, L"SteamClientDll", 0, &keyType, (LPBYTE)OrgSteamCDir_hkcu, &Size1_hkcu);
         RegQueryValueExW(Registrykey, L"SteamClientDll64", 0, &keyType, (LPBYTE)OrgSteamCDir64_hkcu, &Size2_hkcu);
         DWORD SizeActiveUser_hkcu = sizeof(DWORD);
+        DWORD SizePid_hkcu = sizeof(DWORD);
         RegQueryValueExW(Registrykey, L"ActiveUser", 0, &keyType, (LPBYTE)&OrgSteamActiveUser_hkcu, &SizeActiveUser_hkcu);
+        RegQueryValueExW(Registrykey, L"pid", 0, &keyType, (LPBYTE)&OrgSteamPid_hkcu, &SizePid_hkcu);
         RegQueryValueExW(Registrykey, L"Universe", 0, &keyType, (LPBYTE)OrgSteamUniverse_hkcu, &Size4_hkcu);
         logger.write("Found previous registry entry (HKCU) for Steam");
     } else if (RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess", 0, 0, REG_OPTION_NON_VOLATILE,
@@ -205,6 +208,7 @@ static void cleanup_registry_hkcu()
         RegSetValueExW(Registrykey, L"SteamClientDll", NULL, REG_SZ, (const BYTE *)OrgSteamCDir_hkcu, Size1_hkcu);
         RegSetValueExW(Registrykey, L"SteamClientDll64", NULL, REG_SZ, (const BYTE *)OrgSteamCDir64_hkcu, Size2_hkcu);
         RegSetValueExW(Registrykey, L"ActiveUser", NULL, REG_DWORD, (const BYTE *)&OrgSteamActiveUser_hkcu, sizeof(DWORD));
+        RegSetValueExW(Registrykey, L"pid", NULL, REG_DWORD, (const BYTE *)&OrgSteamPid_hkcu, sizeof(DWORD));
         RegSetValueExW(Registrykey, L"Universe", NULL, REG_SZ, (const BYTE *)OrgSteamUniverse_hkcu, Size4_hkcu);
 
         // Close the HKEY Handle.
