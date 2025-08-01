@@ -43,6 +43,8 @@ jobs:
             "steamclient_experimental_loader",
             "steamclient_experimental_extra",
             "lib_game_overlay_renderer",
+            # steam old lib
+            "lib_steam_old",
             # tools
             "tool_lobby_connect",
             "tool_generate_interfaces",
