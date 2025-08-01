@@ -52,6 +52,10 @@ jobs:
         arch: ["x64", "Win32"]
         cfg: ["debug", "release"]
 
+        exclude:
+          - prj: lib_steam_old
+            arch: x64
+
     steps:
       # on Windows Git will auto change line ending to CRLF, not preferable
       - name: "Ensure LF line ending"
