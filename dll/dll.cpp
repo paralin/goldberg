@@ -1358,10 +1358,13 @@ STEAMCLIENT_API void* CreateInterface( const char *pName, int *pReturnCode )
 {
     PRINT_DEBUG("%s %p", pName, pReturnCode);
     auto ptr = create_client_interface(pName);
-    if (ptr) {
-        if (pReturnCode) *pReturnCode = 1;
-    } else {
-        if (pReturnCode) *pReturnCode = 0;
+    if (pReturnCode) {
+        // https://github.com/ValveSoftware/source-sdk-2013/blob/57a8b644af418c691f1fba45791019cf2367dedd/src/public/tier1/interface.h#L156-L160
+        if (ptr) {
+            *pReturnCode = 0; // IFACE_OK
+        } else {
+            *pReturnCode = 1; // IFACE_FAILED
+        }
     }
     return ptr;
 }
