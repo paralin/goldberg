@@ -1379,6 +1379,7 @@ project "lib_steam_old"
     files {
         "steam_old_lib/**",
         "helpers/common_helpers.cpp", "helpers/common_helpers/**",
+        "helpers/dbg_log.cpp", "helpers/dbg_log/**",
         'libs/utfcpp/**',
         -- detours
         detours_files,
@@ -1388,7 +1389,16 @@ project "lib_steam_old"
     }
     -- x32 common source files
     files {
-        "resources/win/client/32/resources.rc"
+        "resources/win/api/32/resources.rc"
+    }
+
+
+    -- libs to link
+    ---------
+    -- Windows libs to link
+    filter {} -- reset the filter and remove all active keywords
+    links {
+        'Ws2_32',
     }
 -- End lib_steam_old
 
