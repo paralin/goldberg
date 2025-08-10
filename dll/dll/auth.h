@@ -30,6 +30,12 @@ struct AppTicketGC {
     uint64_t GCToken{};
     CSteamID id{};
     uint32_t ticketGenDate{}; //epoch
+
+public:
+    std::vector<uint8_t> Serialize() const;
+};
+
+struct AppTicketSession {
     uint32_t ExternalIP{};
     uint32_t InternalIP{};
     uint32_t TimeSinceStartup{};
@@ -60,7 +66,9 @@ struct AppTicket {
 
 struct Auth_Data {
     bool HasGC{};
+    bool HasSession{};
     AppTicketGC GC{};
+    AppTicketSession Session{};
     AppTicket Ticket{};
     //old data
     CSteamID id{};
@@ -106,7 +114,7 @@ public:
 
     CSteamID fakeUser();
     
-    Auth_Data getTicketData( void *pTicket, int cbMaxTicket, uint32 *pcbTicket );
+    Auth_Data getTicketData( void *pTicket, int cbMaxTicket, uint32 *pcbTicket, bool add_session_header = false);
 };
 
 #endif // AUTH_INCLUDE_H

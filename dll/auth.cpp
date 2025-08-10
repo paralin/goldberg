@@ -106,7 +106,7 @@ static std::vector<uint8_t> sign_auth_data(const std::string &private_key_conten
         mbedtls_entropy_free(&entropy_ctx);
 
 #ifndef EMU_RELEASE_BUILD
-        // we nedd a live object until the printf does its job, hence this special handling
+        // we need a live object until the printf does its job, hence this special handling
         std::string err_msg(256, 0);
         mbedtls_strerror(result, &err_msg[0], err_msg.size());
         PRINT_DEBUG("failed to parse private key: %s", err_msg.c_str());
@@ -160,7 +160,7 @@ static std::vector<uint8_t> sign_auth_data(const std::string &private_key_conten
         signature.clear();
 
 #ifndef EMU_RELEASE_BUILD
-        // we nedd a live object until the printf does its job, hence this special handling
+        // we need a live object until the printf does its job, hence this special handling
         std::string err_msg(256, 0);
         mbedtls_strerror(result, &err_msg[0], err_msg.size());
         PRINT_DEBUG("RSA signing failed: %s", err_msg.c_str());
@@ -218,25 +218,18 @@ std::vector<uint8_t> AppTicketGC::Serialize() const
 {
     const uint64_t steam_id = id.ConvertToUint64();
 
-    // must be 52
+    // must be 24
     constexpr size_t total_size = 
         sizeof(STEAM_APPTICKET_GCLen) +
         sizeof(GCToken) +
         sizeof(steam_id) +
-        sizeof(ticketGenDate) +
-        sizeof(STEAM_APPTICKET_SESSIONLEN) +
-        sizeof(one) +
-        sizeof(two) +
-        sizeof(ExternalIP) +
-        sizeof(InternalIP) +
-        sizeof(TimeSinceStartup) +
-        sizeof(TicketGeneratedCount);
+        sizeof(ticketGenDate);
 
     // check the size at compile time, we must ensure the correct size
 #ifndef EMU_RELEASE_BUILD
         static_assert(
-            total_size == 52, 
-            "AUTH::AppTicketGC::SER calculated size of serialized data != 52 bytes, your compiler has some incorrect sizes"
+            total_size == 24, 
+            "AUTH::AppTicketGC::SER calculated size of serialized data != 24 bytes, your compiler has some incorrect sizes"
         );
 #endif
 
@@ -245,15 +238,11 @@ std::vector<uint8_t> AppTicketGC::Serialize() const
         "  GCToken: " "%" PRIu64 "\n"
         "  user steam_id: " "%" PRIu64 "\n"
         "  ticketGenDate: %u\n"
-        "  ExternalIP: 0x%08X, InternalIP: 0x%08X\n"
-        "  TimeSinceStartup: %u, TicketGeneratedCount: %u\n"
         "  SER size = %zu",
 
         GCToken,
         steam_id,
         ticketGenDate,
-        ExternalIP, InternalIP,
-        TimeSinceStartup, TicketGeneratedCount,
         total_size
     );
     
@@ -270,6 +259,58 @@ pBuffer += sizeof(v)
     SER_VAR(GCToken);
     SER_VAR(steam_id);
     SER_VAR(ticketGenDate);
+
+#undef SER_VAR
+
+#ifndef EMU_RELEASE_BUILD
+    // we nedd a live object until the printf does its job, hence this special handling
+    auto str = common_helpers::uint8_vector_to_hex_string(buffer);
+    PRINT_DEBUG("final data [%zu bytes]:\n  %s", buffer.size(), str.c_str());
+#endif
+
+    return buffer;
+}
+
+std::vector<uint8_t> AppTicketSession::Serialize() const
+{
+    // must be 28
+    constexpr size_t total_size =
+        sizeof(STEAM_APPTICKET_SESSIONLEN) +
+        sizeof(one) +
+        sizeof(two) +
+        sizeof(ExternalIP) +
+        sizeof(InternalIP) +
+        sizeof(TimeSinceStartup) +
+        sizeof(TicketGeneratedCount);
+
+    // check the size at compile time, we must ensure the correct size
+#ifndef EMU_RELEASE_BUILD
+    static_assert(
+        total_size == 28,
+        "AUTH::AppTicketSession::SER calculated size of serialized data != 28 bytes, your compiler has some incorrect sizes"
+        );
+#endif
+
+    PRINT_DEBUG(
+        "\n"
+        "  ExternalIP: 0x%08X, InternalIP: 0x%08X\n"
+        "  TimeSinceStartup: %u, TicketGeneratedCount: %u\n"
+        "  SER size = %zu",
+
+        ExternalIP, InternalIP,
+        TimeSinceStartup, TicketGeneratedCount,
+        total_size
+    );
+
+    std::vector<uint8_t> buffer{};
+    buffer.resize(total_size);
+
+    uint8_t *pBuffer = &buffer[0];
+
+#define SER_VAR(v) \
+*reinterpret_cast<std::remove_const<decltype(v)>::type *>(pBuffer) = v; \
+pBuffer += sizeof(v)
+
     SER_VAR(STEAM_APPTICKET_SESSIONLEN);
     SER_VAR(one);
     SER_VAR(two);
@@ -443,7 +484,9 @@ std::vector<uint8_t> Auth_Data::Serialize() const
     /*
         * layout of Auth_Data with GC:
         * ------------------------
-        * X bytes: GC data blob (currently 52 bytes)
+        * X bytes: GC data blob (currently 24 bytes)
+        * ------------------------
+        * X bytes: session data blob (currently 28 bytes)
         * ------------------------
         * 4 bytes: remaining Auth_Data blob size (4 + Y + Z)
         * ------------------------
@@ -501,12 +544,15 @@ std::vector<uint8_t> Auth_Data::Serialize() const
     size_t total_size_without_siglen = ticket_data_layout_length;
 
     std::vector<uint8_t> GCData{};
+    std::vector<uint8_t> SessionData{};
     size_t gc_data_layout_length = 0;
     if (HasGC) {
         /*
             * layout of GC data:
             * ------------------------
-            * X bytes: GC data blob (currently 52 bytes)
+            * X bytes: GC data blob (currently 24 bytes)
+            * ------------------------
+            * X bytes: session data blob (currently 28 bytes)
             * ------------------------
             * 4 bytes: remaining Auth_Data blob size
             * ------------------------
@@ -514,9 +560,12 @@ std::vector<uint8_t> Auth_Data::Serialize() const
             * total layout length = X + 4
             */
         GCData = GC.Serialize();
-        gc_data_layout_length +=
-            GCData.size() +
-            sizeof(uint32_t);
+        gc_data_layout_length += GCData.size();
+        if (HasSession) {
+            SessionData = Session.Serialize();
+            gc_data_layout_length += SessionData.size();
+        }
+        gc_data_layout_length += sizeof(uint32_t);
         
         total_size_without_siglen += gc_data_layout_length;
     }
@@ -540,6 +589,12 @@ pBuffer += sizeof(v)
     if (HasGC) {
         memcpy(pBuffer, GCData.data(), GCData.size());
         pBuffer += GCData.size();
+
+        // Handle session data if applicable
+        if (HasSession) {
+            memcpy(pBuffer, SessionData.data(), SessionData.size());
+            pBuffer += SessionData.size();
+        }
 
         // when GC data is written (HasGC),
         // the next 4 bytes after the GCData will be the length of the remaining data in the final buffer
@@ -665,7 +720,7 @@ void Auth_Manager::launch_callback_gs(CSteamID id, bool approved)
     }
 }
 
-Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *pcbTicket )
+Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *pcbTicket, bool add_session_header )
 {
 
 #define IP4_AS_DWORD_LITTLE_ENDIAN(a,b,c,d) (((uint32_t)d)<<24 | ((uint32_t)c)<<16 | ((uint32_t)b)<<8 | (uint32_t)a)
@@ -706,13 +761,14 @@ Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *p
         if (settings->use_gc_token)
         {
             ticket_data.HasGC = true;
+            ticket_data.HasSession = add_session_header;
             ticket_data.GC.GCToken = ((uint64_t)ticket_data.number << 32) | (uint64_t)generate_random_int();
             ticket_data.GC.id = steam_id;
             ticket_data.GC.ticketGenDate = (uint32_t)GenDate.count();
-            ticket_data.GC.ExternalIP = IP4_AS_DWORD_LITTLE_ENDIAN(127, 0, 0, 1);
-            ticket_data.GC.InternalIP = IP4_AS_DWORD_LITTLE_ENDIAN(127, 0, 0, 1);
-            ticket_data.GC.TimeSinceStartup = (uint32_t)std::chrono::duration_cast<std::chrono::seconds>(curTime - startup_time).count();
-            ticket_data.GC.TicketGeneratedCount = get_ticket_count();
+            ticket_data.Session.ExternalIP = IP4_AS_DWORD_LITTLE_ENDIAN(127, 0, 0, 1);
+            ticket_data.Session.InternalIP = IP4_AS_DWORD_LITTLE_ENDIAN(127, 0, 0, 1);
+            ticket_data.Session.TimeSinceStartup = (uint32_t)std::chrono::duration_cast<std::chrono::seconds>(curTime - startup_time).count();
+            ticket_data.Session.TicketGeneratedCount = get_ticket_count();
         }
         std::vector<uint8_t> ser = ticket_data.Serialize();
         uint32_t ser_size = static_cast<uint32_t>(ser.size());
@@ -766,7 +822,7 @@ HAuthTicket Auth_Manager::getTicket( void *pTicket, int cbMaxTicket, uint32 *pcb
         if (cbMaxTicket > STEAM_AUTH_TICKET_SIZE) cbMaxTicket = STEAM_AUTH_TICKET_SIZE;
     }
     
-    Auth_Data ticket_data = getTicketData(pTicket, cbMaxTicket, pcbTicket );
+    Auth_Data ticket_data = getTicketData(pTicket, cbMaxTicket, pcbTicket, true);
 
     if (*pcbTicket > static_cast<uint32>(cbMaxTicket)) {
         return k_HAuthTicketInvalid;
