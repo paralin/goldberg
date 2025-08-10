@@ -823,68 +823,112 @@ bool Auth_Manager::SendSteam2UserConnect( uint32 unUserID, const void *pvRawKey,
     // pvCookie is Steam3 auth ticket, it comes from us.
     // Steam3 ticket is technically optional but it should always be there if the client is using Goldberg
     // so there's no real need to check Steam2 ticket.
-    if (cubCookie < STEAM_TICKET_MIN_SIZE) return false;
 
-    Auth_Data data;
-    uint64 id;
-    memcpy(&id, (char *)pvCookie + STEAM_ID_OFFSET_TICKET, sizeof(id));
-    uint32 number;
-    memcpy(&number, ((char *)pvCookie) + sizeof(uint64), sizeof(number));
-    data.id = CSteamID(id);
-    data.number = number;
-    if (pSteamIDUser) *pSteamIDUser = data.id;
+    // HACK: Generate Steam ID from IP address for unknown clients.
+    CSteamID fallbackID(unIPPublic, k_EUniversePublic, k_EAccountTypeIndividual);
+    Auth_Data data = validateTicket(pvCookie, cubCookie, fallbackID, pSteamIDUser);
+    if (!data.id.IsValid())
+        return false;
 
     for (auto & t : inbound) {
         if (t.id == data.id) {
             //Should this return false?
-            launch_callback_gs_steam2(id, unUserID, true);
+            launch_callback_gs_steam2(data.id, unUserID, true);
             return true;
         }
     }
 
     inbound.push_back(data);
-    launch_callback_gs_steam2(id, unUserID, true);
+    launch_callback_gs_steam2(data.id, unUserID, true);
     return true;
 }
 
 bool Auth_Manager::SendUserConnectAndAuthenticate( uint32 unIPClient, const void *pvAuthBlob, uint32 cubAuthBlobSize, CSteamID *pSteamIDUser )
 {
-    if (cubAuthBlobSize < STEAM_TICKET_MIN_SIZE) return false;
-
-    Auth_Data data;
-    uint64 id;
-    memcpy(&id, (char *)pvAuthBlob + STEAM_ID_OFFSET_TICKET, sizeof(id));
-    uint32 number;
-    memcpy(&number, ((char *)pvAuthBlob) + sizeof(uint64), sizeof(number));
-    data.id = CSteamID(id);
-    data.number = number;
-    if (pSteamIDUser) *pSteamIDUser = data.id;
+    // HACK: Generate Steam ID from IP address for unknown clients.
+    CSteamID fallbackID(unIPClient, k_EUniversePublic, k_EAccountTypeIndividual);
+    Auth_Data data = validateTicket(pvAuthBlob, cubAuthBlobSize, fallbackID, pSteamIDUser);
+    if (!data.id.IsValid())
+        return false;
 
     for (auto & t : inbound) {
         if (t.id == data.id) {
             //Should this return false?
-            launch_callback_gs(id, true);
+            launch_callback_gs(data.id, true);
             return true;
         }
     }
 
     inbound.push_back(data);
-    launch_callback_gs(id, true);
+    launch_callback_gs(data.id, true);
     return true;
 }
 
-EBeginAuthSessionResult Auth_Manager::beginAuth(const void *pAuthTicket, int cbAuthTicket, CSteamID steamID )
+Auth_Data Auth_Manager::validateTicket(const void *pAuthTicket, uint32 cbAuthTicket, CSteamID fallbackID, CSteamID *pSteamIDUser)
 {
-    if (cbAuthTicket < STEAM_TICKET_MIN_SIZE) return k_EBeginAuthSessionResultInvalidTicket;
+    if (cbAuthTicket < STEAM_TICKET_MIN_SIZE)
+        return {};
 
     Auth_Data data;
-    uint64 id;
-    memcpy(&id, (char *)pAuthTicket + STEAM_ID_OFFSET_TICKET, sizeof(id));
-    uint32 number;
-    memcpy(&number, ((char *)pAuthTicket) + sizeof(uint64), sizeof(number));
-    data.id = CSteamID(id);
-    data.number = number;
+    if (*(uint32 *)pAuthTicket == 0x554d4548) { // "HEMU"
+        // This is a SmartSteamEmu ticket.
+        // 0x00: header magic
+        // 0x04: ticket version
+        // 0x08: external IP
+        // 0x0c: zero
+        // 0x10: Steam ID
+        // rest is unknown
+        PRINT_DEBUG("SmartSteamEmu ticket detected");
+        uint32 version;
+        memcpy(&version, (char *)pAuthTicket + 0x04, sizeof(version));
+        if (version != 315)
+            return {};
+
+        uint64 id;
+        memcpy(&id, (char *)pAuthTicket + 0x10, sizeof(id));
+        data.id = CSteamID(id);
+        data.number = 0;
+    } else if (*(uint32 *)((char *)pAuthTicket + 0x08) == 0x726576) {
+        // This is a RevEmu ticket.
+        PRINT_DEBUG("RevEmu ticket detected");
+        uint32 version;
+        memcpy(&version, (char *)pAuthTicket + 0x00, sizeof(version));
+        if (version < 83 || cbAuthTicket < 0xa8)
+            return {};
+
+        uint64 id;
+        memcpy(&id, (char *)pAuthTicket + 0x10, sizeof(id));
+        data.id = CSteamID(id);
+        data.number = 0;
+    } else if (*(uint32 *)pAuthTicket == 0x14) {
+        // Assume this is a standard Steam ticket. Used by us and real Steam.
+        // TODO: More robust checks.
+        PRINT_DEBUG("standard ticket detected");
+        uint64 id;
+        memcpy(&id, (char *)pAuthTicket + STEAM_ID_OFFSET_TICKET, sizeof(id));
+        uint32 number;
+        memcpy(&number, ((char *)pAuthTicket) + sizeof(uint64), sizeof(number));
+        data.id = CSteamID(id);
+        data.number = number;
+    } else if (fallbackID.IsValid()) {
+        PRINT_DEBUG("unrecognized ticket format");
+        data.id = fallbackID;
+        data.number = 0;
+    } else {
+        PRINT_DEBUG("unrecognized ticket format and no fallback steam id is provided, rejecting");
+        return {};
+    }
+
     data.created = std::chrono::high_resolution_clock::now();
+    if (pSteamIDUser) *pSteamIDUser = data.id;
+    return data;
+}
+
+EBeginAuthSessionResult Auth_Manager::beginAuth(const void *pAuthTicket, int cbAuthTicket, CSteamID steamID)
+{
+    Auth_Data data = validateTicket(pAuthTicket, cbAuthTicket, steamID, nullptr);
+    if (!data.id.IsValid() || data.id != steamID)
+        return k_EBeginAuthSessionResultInvalidTicket;
 
     for (auto & t : inbound) {
         if (t.id == data.id && !check_timedout(t.created, STEAM_TICKET_PROCESS_TIME)) {

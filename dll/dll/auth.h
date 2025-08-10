@@ -95,6 +95,7 @@ public:
     HAuthTicket getWebApiTicket( const char *pchIdentity );
     void cancelTicket(uint32 number);
 
+    Auth_Data validateTicket(const void *pAuthTicket, uint32 cbAuthTicket, CSteamID fallbackID, CSteamID *pSteamIDUser);
     EBeginAuthSessionResult beginAuth(const void *pAuthTicket, int cbAuthTicket, CSteamID steamID);
     bool endAuth(CSteamID id);
 
