@@ -3,8 +3,8 @@
 #define STEAM_ID_OFFSET_TICKET (4 + 8)
 #define STEAM_TICKET_PROCESS_TIME 0.03
 
-
-static inline int generate_random_int() {
+static inline int generate_random_int()
+{
     int a;
     randombytes((char *)&a, sizeof(a));
     return a;
@@ -707,7 +707,7 @@ Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *p
         if (settings->use_gc_token)
         {
             ticket_data.HasGC = true;
-            ticket_data.GC.GCToken = generate_random_int();
+            ticket_data.GC.GCToken = ((uint64_t)ticket_data.number << 32) | (uint64_t)generate_random_int();
             ticket_data.GC.id = steam_id;
             ticket_data.GC.ticketGenDate = (uint32_t)GenDate.count();
             ticket_data.GC.ExternalIP = IP4_AS_DWORD_LITTLE_ENDIAN(127, 0, 0, 1);
