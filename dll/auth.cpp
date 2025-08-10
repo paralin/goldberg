@@ -1,6 +1,5 @@
 #include "dll/auth.h"
 
-#define STEAM_ID_OFFSET_TICKET (4 + 8)
 #define STEAM_TICKET_PROCESS_TIME 0.03
 
 static inline int generate_random_int()
@@ -724,19 +723,30 @@ Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *p
     }
     else
     {
-        memset(pTicket, 123, cbMaxTicket);
-        ((char *)pTicket)[0] = 0x14;
-        ((char *)pTicket)[1] = 0;
-        ((char *)pTicket)[2] = 0;
-        ((char *)pTicket)[3] = 0;
-        uint64 steam_id_buff = steam_id.ConvertToUint64();
-        memcpy((char *)pTicket + STEAM_ID_OFFSET_TICKET, &steam_id_buff, sizeof(steam_id_buff));
-        *pcbTicket = STEAM_TICKET_MIN_SIZE;
-        uint32 ttt = generate_steam_ticket_id();
         ticket_data.id = steam_id;
-        ticket_data.number = ttt;
+        ticket_data.number = generate_steam_ticket_id();
 
-        memcpy(((char *)pTicket) + sizeof(uint64), &ttt, sizeof(ttt));
+        memset(pTicket, 0, cbMaxTicket);
+
+        uint32_t gc_len = STEAM_APPTICKET_GCLen;
+        uint64_t token = ((uint64_t)ticket_data.number << 32) | (uint64_t)generate_random_int();
+        uint64_t steam_id_buff = steam_id.ConvertToUint64();
+        uint32_t ticket_gen_date = (uint32_t)std::chrono::system_clock::now().time_since_epoch().count();
+
+        uint8_t *pBuffer = (uint8_t *)pTicket;
+
+#define SER_VAR(v) \
+*reinterpret_cast<std::remove_const<decltype(v)>::type *>(pBuffer) = v; \
+pBuffer += sizeof(v)
+
+        SER_VAR(gc_len);
+        SER_VAR(token);
+        SER_VAR(steam_id_buff);
+        SER_VAR(ticket_gen_date);
+
+#undef SER_VAR
+
+        *pcbTicket = STEAM_TICKET_MIN_SIZE;
     }
 
 #undef IP4_AS_DWORD_LITTLE_ENDIAN
@@ -900,14 +910,14 @@ Auth_Data Auth_Manager::validateTicket(const void *pAuthTicket, uint32 cbAuthTic
         memcpy(&id, (char *)pAuthTicket + 0x10, sizeof(id));
         data.id = CSteamID(id);
         data.number = 0;
-    } else if (*(uint32 *)pAuthTicket == 0x14) {
+    } else if (*(uint32 *)pAuthTicket == STEAM_APPTICKET_GCLen) {
         // Assume this is a standard Steam ticket. Used by us and real Steam.
         // TODO: More robust checks.
         PRINT_DEBUG("standard ticket detected");
-        uint64 id;
-        memcpy(&id, (char *)pAuthTicket + STEAM_ID_OFFSET_TICKET, sizeof(id));
         uint32 number;
-        memcpy(&number, ((char *)pAuthTicket) + sizeof(uint64), sizeof(number));
+        memcpy(&number, ((char *)pAuthTicket) + 0x08, sizeof(number));
+        uint64 id;
+        memcpy(&id, (char *)pAuthTicket + 0x0c, sizeof(id));
         data.id = CSteamID(id);
         data.number = number;
     } else if (fallbackID.IsValid()) {
