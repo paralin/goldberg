@@ -271,6 +271,8 @@ public:
     bool enable_new_app_ticket = false;
     // can use GC token for generation
     bool use_gc_token = false;
+    // block connections from clients with unknown auth ticket
+    bool block_unknown_clients = false;
 
     // allow stats not defined by the user?
     bool allow_unknown_stats = false;

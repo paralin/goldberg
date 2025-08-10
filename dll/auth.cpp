@@ -920,6 +920,9 @@ Auth_Data Auth_Manager::validateTicket(const void *pAuthTicket, uint32 cbAuthTic
         memcpy(&id, (char *)pAuthTicket + 0x0c, sizeof(id));
         data.id = CSteamID(id);
         data.number = number;
+    } else if (settings->block_unknown_clients) {
+        PRINT_DEBUG("unrecognized ticket format, rejecting");
+        return {};
     } else if (fallbackID.IsValid()) {
         PRINT_DEBUG("unrecognized ticket format");
         data.id = fallbackID;
