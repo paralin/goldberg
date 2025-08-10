@@ -630,25 +630,25 @@ void Auth_Manager::launch_callback_gs_steam2(CSteamID steam_id, uint32_t user_id
         GSClientSteam2Accept_t data2{};
         data2.m_UserID = user_id;
         data2.m_SteamID = steam_id.ConvertToUint64();
-        callbacks->addCBResult(data2.k_iCallback, &data2, sizeof(data2));
+        callbacks->addCBResult(data2.k_iCallback, &data2, sizeof(data2), STEAM_TICKET_PROCESS_TIME);
 
         // Fire Steam3 callback.
         GSClientApprove_t data3{};
         data3.m_SteamID = data3.m_OwnerSteamID = steam_id;
-        callbacks->addCBResult(data3.k_iCallback, &data3, sizeof(data3));
+        callbacks->addCBResult(data3.k_iCallback, &data3, sizeof(data3), STEAM_TICKET_PROCESS_TIME * 2.0);
     } else {
-        // Fire Steam2 callback. This will kick the client so no need to send Steam3 callback.
+        /*
         GSClientSteam2Deny_t data2{};
         data2.m_UserID = user_id;
         data2.m_eSteamError = k_EDenyNotLoggedOn;
-        callbacks->addCBResult(data2.k_iCallback, &data2, sizeof(data2));
+        callbacks->addCBResult(data2.k_iCallback, &data2, sizeof(data2), STEAM_TICKET_PROCESS_TIME);
+        */
 
-        /*
+        // Fire Steam3 callback. Only one of these is actually needed to kick the client.
         GSClientDeny_t data3{};
         data3.m_SteamID = steam_id;
         data3.m_eDenyReason = k_EDenyNotLoggedOn; //TODO: other reasons?
-        callbacks->addCBResult(data3.k_iCallback, &data3, sizeof(data3));
-        */
+        callbacks->addCBResult(data3.k_iCallback, &data3, sizeof(data3), STEAM_TICKET_PROCESS_TIME);
     }
 }
 
@@ -657,12 +657,12 @@ void Auth_Manager::launch_callback_gs(CSteamID id, bool approved)
     if (approved) {
         GSClientApprove_t data{};
         data.m_SteamID = data.m_OwnerSteamID = id;
-        callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+        callbacks->addCBResult(data.k_iCallback, &data, sizeof(data), STEAM_TICKET_PROCESS_TIME);
     } else {
         GSClientDeny_t data{};
         data.m_SteamID = id;
         data.m_eDenyReason = k_EDenyNotLoggedOn; //TODO: other reasons?
-        callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+        callbacks->addCBResult(data.k_iCallback, &data, sizeof(data), STEAM_TICKET_PROCESS_TIME);
     }
 }
 
