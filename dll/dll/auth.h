@@ -7,7 +7,7 @@
 #include "base.h"
 #include "include.wrap.mbedtls.h"
 
-#define STEAM_TICKET_MIN_SIZE  (4 + 8 + 8)
+#define STEAM_TICKET_MIN_SIZE  (4 + 8 + 8 + 4)
 #define STEAM_TICKET_MIN_SIZE_NEW 170
 
 // Steam recommends sending 1024 byte buffer. It returns 234 byte ticket.
