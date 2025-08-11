@@ -772,9 +772,11 @@ Auth_Data Auth_Manager::getTicketData( void *pTicket, int cbMaxTicket, uint32 *p
         }
         std::vector<uint8_t> ser = ticket_data.Serialize();
         uint32_t ser_size = static_cast<uint32_t>(ser.size());
-        *pcbTicket = ser_size;
-        if (cbMaxTicket > 0 && static_cast<uint32_t>(cbMaxTicket) >= ser_size) {
+        if (static_cast<uint32_t>(cbMaxTicket) >= ser_size) {
             memcpy(pTicket, ser.data(), ser_size);
+            *pcbTicket = ser_size;
+        } else {
+            *pcbTicket = 0;
         }
     }
     else
@@ -824,7 +826,7 @@ HAuthTicket Auth_Manager::getTicket( void *pTicket, int cbMaxTicket, uint32 *pcb
     
     Auth_Data ticket_data = getTicketData(pTicket, cbMaxTicket, pcbTicket, true);
 
-    if (*pcbTicket > static_cast<uint32>(cbMaxTicket)) {
+    if (*pcbTicket == 0) {
         return k_HAuthTicketInvalid;
     }
 
