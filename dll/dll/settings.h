@@ -268,9 +268,9 @@ public:
     bool steam_deck = false;
     
     // use new app_ticket auth instead of old one
-    bool enable_new_app_ticket = false;
+    bool enable_new_app_ticket = true;
     // can use GC token for generation
-    bool use_gc_token = false;
+    bool use_gc_token = true;
     // block connections from clients with unknown auth ticket
     bool block_unknown_clients = false;
 
