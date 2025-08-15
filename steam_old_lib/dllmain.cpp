@@ -9,6 +9,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <exception>
 #include <string_view>
 #include <cstdint>
 
@@ -71,6 +72,7 @@ __declspec(noinline)
 static LONG WINAPI WinVerifyTrust_hook(HWND hwnd, GUID *pgActionID, LPVOID pWVTData) {
     if (WinVerifyTrust_hooked) {
         PRINT_DEBUG_ENTRY();
+        Sleep(2000); // mimic original behavior
         SetLastError(ERROR_SUCCESS);
         return 0; // success
     }
@@ -79,6 +81,8 @@ static LONG WINAPI WinVerifyTrust_hook(HWND hwnd, GUID *pgActionID, LPVOID pWVTD
         return actual_WinVerifyTrust(hwnd, pgActionID, pWVTData);
     }
     
+    PRINT_DEBUG("[X] hook isn't enabled but original pointer is null, returning success anyway!");
+    Sleep(2000); // mimic original behavior
     SetLastError(ERROR_SUCCESS);
     return 0; // success
 }
@@ -141,20 +145,20 @@ static bool redirect_win32_apis()
     PRINT_DEBUG_ENTRY();
     try {
         wintrust_dll = LoadLibraryExW(wintrust_lib_path.c_str(), NULL, 0);
-        if (!wintrust_dll) throw std::runtime_error("");
+        if (!wintrust_dll) throw std::runtime_error("failed to load wintrust lib");
 
         actual_WinVerifyTrust = (decltype(actual_WinVerifyTrust))GetProcAddress(wintrust_dll, "WinVerifyTrust");
-        if (!actual_WinVerifyTrust) throw std::runtime_error("");
+        if (!actual_WinVerifyTrust) throw std::runtime_error("failed to get proc address of WinVerifyTrust()");
 
-        if (DetourTransactionBegin() != NO_ERROR) throw std::runtime_error("");
-        if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) throw std::runtime_error("");
+        if (DetourTransactionBegin() != NO_ERROR) throw std::runtime_error("call failed: DetourTransactionBegin");
+        if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) throw std::runtime_error("call failed: DetourUpdateThread");
 
-        if (DetourAttach((PVOID *)&actual_WinVerifyTrust, (PVOID)WinVerifyTrust_hook) != NO_ERROR) throw std::runtime_error("");
-        if (DetourAttach((PVOID *)&actual_LoadLibraryA, (PVOID)LoadLibraryA_hook) != NO_ERROR) throw std::runtime_error("");
-        if (DetourAttach((PVOID *)&actual_LoadLibraryExA, (PVOID)LoadLibraryExA_hook) != NO_ERROR) throw std::runtime_error("");
-        if (DetourAttach((PVOID *)&actual_LoadLibraryW, (PVOID)LoadLibraryW_hook) != NO_ERROR) throw std::runtime_error("");
-        if (DetourAttach((PVOID *)&actual_LoadLibraryExW, (PVOID)LoadLibraryExW_hook) != NO_ERROR) throw std::runtime_error("");
-        if (DetourTransactionCommit() != NO_ERROR) throw std::runtime_error("");
+        if (DetourAttach((PVOID *)&actual_WinVerifyTrust, (PVOID)WinVerifyTrust_hook) != NO_ERROR) throw std::runtime_error("attach failed: WinVerifyTrust");
+        if (DetourAttach((PVOID *)&actual_LoadLibraryA, (PVOID)LoadLibraryA_hook) != NO_ERROR) throw std::runtime_error("attach failed: LoadLibraryA");
+        if (DetourAttach((PVOID *)&actual_LoadLibraryExA, (PVOID)LoadLibraryExA_hook) != NO_ERROR) throw std::runtime_error("attach failed: LoadLibraryExA");
+        if (DetourAttach((PVOID *)&actual_LoadLibraryW, (PVOID)LoadLibraryW_hook) != NO_ERROR) throw std::runtime_error("attach failed: LoadLibraryW");
+        if (DetourAttach((PVOID *)&actual_LoadLibraryExW, (PVOID)LoadLibraryExW_hook) != NO_ERROR) throw std::runtime_error("attach failed: LoadLibraryExW");
+        if (DetourTransactionCommit() != NO_ERROR) throw std::runtime_error("call failed: DetourTransactionCommit");
 
         WinVerifyTrust_hooked = true;
         LoadLibraryA_hooked = true;
@@ -162,9 +166,10 @@ static bool redirect_win32_apis()
         LoadLibraryW_hooked = true;
         LoadLibraryExW_hooked = true;
 
+        PRINT_DEBUG("success!");
         return true;
-    } catch (...) {
-
+    } catch (const std::exception &ex) {
+        PRINT_DEBUG("[X] error: %s", ex.what());
     }
 
     if (wintrust_dll) {
@@ -172,6 +177,7 @@ static bool redirect_win32_apis()
         wintrust_dll = nullptr;
     }
 
+    PRINT_DEBUG("[X] Win32 API redirection failed");
     return false;
 }
 
@@ -187,8 +193,8 @@ static bool restore_win32_apis()
     bool ret = false;
 
     try {
-        if (DetourTransactionBegin() != NO_ERROR) throw std::runtime_error("");
-        if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) throw std::runtime_error("");
+        if (DetourTransactionBegin() != NO_ERROR) throw std::runtime_error("call failed: DetourTransactionBegin");
+        if (DetourUpdateThread(GetCurrentThread()) != NO_ERROR) throw std::runtime_error("call failed: DetourUpdateThread");
 
         if (actual_WinVerifyTrust) {
             DetourDetach((PVOID *)&actual_WinVerifyTrust, (PVOID)WinVerifyTrust_hook);
@@ -198,11 +204,11 @@ static bool restore_win32_apis()
         DetourDetach((PVOID *)&actual_LoadLibraryExA, (PVOID)LoadLibraryExA_hook);
         DetourDetach((PVOID *)&actual_LoadLibraryW, (PVOID)LoadLibraryW_hook);
         DetourDetach((PVOID *)&actual_LoadLibraryExW, (PVOID)LoadLibraryExW_hook);
-        if (DetourTransactionCommit() != NO_ERROR) throw std::runtime_error("");
+        if (DetourTransactionCommit() != NO_ERROR) throw std::runtime_error("call failed: DetourTransactionCommit");
 
         ret = true;
-    } catch (...) {
-
+    } catch (const std::exception &ex) {
+        PRINT_DEBUG("[X] error: %s", ex.what());
     }
 
     if (wintrust_dll) {
@@ -210,6 +216,7 @@ static bool restore_win32_apis()
         wintrust_dll = nullptr;
     }
 
+    PRINT_DEBUG("result = %i", (int)ret);
     return ret;
 }
 
