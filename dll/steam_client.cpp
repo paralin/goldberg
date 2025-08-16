@@ -34,7 +34,9 @@ void Steam_Client::background_thread_proc()
         network->Run(); // networking must run first since it receives messages used by each run_callback()
         run_every_runcb->run(); // call each run_callback()
 
-        playtime_counter->tick(); // update playtime counter
+        if (settings_client->record_playtime) {
+            playtime_counter->tick(); // update playtime counter
+        }
     }
 }
 
@@ -224,6 +226,8 @@ Steam_Client::~Steam_Client()
     DEL_INST(steam_overlay);
     
     DEL_INST(steam_app_ticket);
+
+    DEL_INST(playtime_counter);
 
     DEL_INST(ugc_bridge);
 

@@ -16,10 +16,10 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "dll/playtime.h"
-#include "dll/local_storage.h"
 
 #include <chrono>
 #include <mutex>
+#include <limits>
 
 PlaytimeCounter::PlaytimeCounter(Local_Storage* local_storage)
    : local_storage(local_storage), last_tick(std::chrono::steady_clock::now())
@@ -34,30 +34,37 @@ PlaytimeCounter::~PlaytimeCounter()
 
 void PlaytimeCounter::tick()
 {
-    std::lock_guard<std::mutex> lock(mutex);
     auto now = std::chrono::steady_clock::now();
+
     if (!initialized) {
         load();
+        std::lock_guard<std::mutex> lock(mutex);
         last_tick = now;
         initialized = true;
         return;
     }
 
-    auto delta = std::chrono::duration_cast<std::chrono::seconds>(now - last_tick).count();
-    if (delta <= 0) return;
+    bool need_save = false;
+    {
+        std::lock_guard<std::mutex> lock(mutex);
 
-    playtime_seconds += static_cast<uint64_t>(delta);
-    last_tick = now;
+        auto delta = std::chrono::duration_cast<std::chrono::seconds>(now - last_tick).count();
+        if (delta <= 0) return;
 
-    lock.~lock_guard();
+        playtime_seconds += static_cast<uint64_t>(delta);
+        last_tick = now;
 
-    since_save += delta;
-    if (since_save >= 60) {
+        since_save += delta;
+        if (since_save >= 60) {
+            since_save = 0;
+            need_save = true;
+        }
+    }
+
+    if (need_save) {
         save();
-        since_save = 0;
     }
 }
-
 void PlaytimeCounter::load()
 {
     std::lock_guard<std::mutex> lock(mutex);
@@ -67,7 +74,9 @@ void PlaytimeCounter::load()
     std::string data(32, '\0');
     if (local_storage->get_data("", playtime_filename, data.data(), static_cast<unsigned int>(data.size()), 0) > 0 &&
         std::all_of(data.begin(), data.end(), ::isdigit)) {
-        playtime_seconds = std::stoull(data);
+        try {
+            playtime_seconds = std::stoull(data);
+        } catch (...) {}
     }
 
     initialized = true;

@@ -17,12 +17,11 @@
 
 #pragma once
 
+#include "local_storage.h"
 #include <cstdint>
 #include <chrono>
 #include <mutex>
 #include <string>
-
-class Local_Storage;
 
 class PlaytimeCounter {
 public:
