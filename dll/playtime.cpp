@@ -17,8 +17,6 @@
 
 #include "dll/playtime.h"
 
-#include <chrono>
-#include <mutex>
 #include <limits>
 
 PlaytimeCounter::PlaytimeCounter(Local_Storage* local_storage)
@@ -65,6 +63,7 @@ void PlaytimeCounter::tick()
         save();
     }
 }
+
 void PlaytimeCounter::load()
 {
     std::lock_guard<std::mutex> lock(mutex);
