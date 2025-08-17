@@ -49,7 +49,14 @@ void PlaytimeCounter::tick()
         auto delta = std::chrono::duration_cast<std::chrono::seconds>(now - last_tick).count();
         if (delta <= 0) return;
 
-        playtime_seconds += static_cast<uint64_t>(delta);
+        uint64_t inc = static_cast<uint64_t>(delta);
+        const uint64_t maxv = std::numeric_limits<uint64_t>::max();
+        if (playtime_seconds > maxv - inc) {
+            playtime_seconds = maxv;
+        } else {
+            playtime_seconds += inc;
+        }
+        
         last_tick = now;
 
         since_save += delta;
