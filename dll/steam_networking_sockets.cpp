@@ -201,6 +201,26 @@ void Steam_Networking_Sockets::set_steamnetconnectioninfo(std::map<HSteamNetConn
     //keep this in mind in future interface updates
 }
 
+void Steam_Networking_Sockets::set_steamnetconnectioninfo_001(std::map<HSteamNetConnection, Connect_Socket>::iterator connect_socket, SteamNetConnectionInfo001_t* pInfo)
+{
+    pInfo->m_steamIDRemote = connect_socket->second.remote_identity.GetSteamID();
+    pInfo->m_nUserData = connect_socket->second.user_data;
+    pInfo->m_hListenSocket = connect_socket->second.listen_socket_id;
+    if (connect_socket->second.real_port != SNS_DISABLED_PORT) {
+        pInfo->m_unIPRemote = network->getIP(connect_socket->second.remote_identity.GetSteamID());
+        pInfo->m_unPortRemote = connect_socket->first;
+    }
+
+    pInfo->m_idPOPRemote = 0;
+    pInfo->m_idPOPRelay = 0;
+    pInfo->m_eState = convert_status(connect_socket->second.status);
+    pInfo->m_eEndReason = 0; //TODO
+    pInfo->m_szEndDebug[0] = 0;
+
+    //Note some games might not allocate a struct the whole size of SteamNetConnectionInfo_t when calling GetConnectionInfo
+    //keep this in mind in future interface updates
+}
+
 void Steam_Networking_Sockets::launch_callback(HSteamNetConnection m_hConn, enum connect_socket_status old_status)
 {
     auto connect_socket = sbcs->connect_sockets.find(m_hConn);
@@ -576,7 +596,7 @@ bool Steam_Networking_Sockets::CloseListenSocket( HSteamListenSocket hSocket, co
 {
     PRINT_DEBUG("old");
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
-    return false;
+    return CloseListenSocket(hSocket);
 }
 
 /// Destroy a listen socket.  All the connections that were accepting on the listen
@@ -892,7 +912,7 @@ int Steam_Networking_Sockets::ReceiveMessagesOnListenSocket( HSteamListenSocket 
 /// Returns basic information about the high-level state of the connection.
 bool Steam_Networking_Sockets::GetConnectionInfo( HSteamNetConnection hConn, SteamNetConnectionInfo_t *pInfo )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%u %i", hConn, pInfo == NULL);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
     if (!pInfo) return false;
 
@@ -993,9 +1013,16 @@ int Steam_Networking_Sockets::ReceiveMessagesOnListenSocket( HSteamListenSocket 
 /// Returns information about the specified connection.
 bool Steam_Networking_Sockets::GetConnectionInfo( HSteamNetConnection hConn, SteamNetConnectionInfo001_t *pInfo )
 {
-    PRINT_DEBUG_TODO();
+    PRINT_DEBUG("001 %u %i", hConn, pInfo == NULL);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
-    return false;
+
+    if (!pInfo) return false;
+
+    auto connect_socket = sbcs->connect_sockets.find(hConn);
+    if (connect_socket == sbcs->connect_sockets.end()) return false;
+
+    set_steamnetconnectioninfo_001(connect_socket, pInfo);
+    return true;
 }
 
 
