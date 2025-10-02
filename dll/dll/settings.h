@@ -366,6 +366,9 @@ public:
     bool overlay_always_show_frametime = false;
     bool overlay_always_show_playtime = false;
 
+    // free weekend
+    bool free_weekend = false;
+
 
 #ifdef LOBBY_CONNECT
     static constexpr const bool is_lobby_connect = true;

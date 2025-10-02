@@ -1549,6 +1549,9 @@ static void parse_simple_features(class Settings *settings_client, class Setting
 
     settings_client->enable_builtin_preowned_ids = ini.GetBoolValue("main::misc", "enable_steam_preowned_ids", settings_client->enable_builtin_preowned_ids);
     settings_server->enable_builtin_preowned_ids = ini.GetBoolValue("main::misc", "enable_steam_preowned_ids", settings_server->enable_builtin_preowned_ids);
+
+    settings_client->free_weekend = ini.GetBoolValue("main::misc", "free_weekend", settings_client->free_weekend);
+    settings_server->free_weekend = ini.GetBoolValue("main::misc", "free_weekend", settings_server->free_weekend);
 }
 
 // [main::stats]
