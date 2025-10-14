@@ -15,13 +15,14 @@
    License along with the Goldberg Emulator; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "dll/settings_parser.h"
-#include "dll/base64.h"
-
 #define SI_CONVERT_GENERIC
 #define SI_SUPPORT_IOSTREAMS
 #define SI_NO_MBCS
 #include "simpleini/SimpleIni.h"
+
+#include "dll/settings_parser.h"
+#include "dll/settings_parser_ufs.h"
+#include "dll/base64.h"
 
 
 constexpr const static char config_ini_app[]     = "configs.app.ini";
@@ -1872,6 +1873,7 @@ uint32 create_localstorage_settings(Settings **settings_client_out, Settings **s
     parse_overlay_general_config(settings_client, settings_server);
     load_overlay_appearance(settings_client, settings_server, local_storage);
     parse_steam_game_stats_reports_dir(settings_client, settings_server);
+    parse_cloud_save(&ini, settings_client, settings_server, local_storage);
 
     *settings_client_out = settings_client;
     *settings_server_out = settings_server;
