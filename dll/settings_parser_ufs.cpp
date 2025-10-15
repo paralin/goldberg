@@ -85,14 +85,16 @@ static std::string iden_factory_EmuSteamInstall(CSimpleIniA *ini, class Settings
 // https://learn.microsoft.com/en-us/windows/win32/shell/knownfolderid
 static inline std::string get_winSpecialFolder(REFKNOWNFOLDERID rfid)
 {
+    std::string path{};
+
     wchar_t *pszPath = nullptr;
     HRESULT hr = SHGetKnownFolderPath(rfid, 0, NULL, &pszPath);
-    if (SUCCEEDED(hr)) {
-        auto path = utf8_encode(pszPath);
-        CoTaskMemFree(pszPath);
-        return path;
+    if (SUCCEEDED(hr) && pszPath != nullptr) {
+        path = utf8_encode(pszPath);
     }
-    return {};
+
+    CoTaskMemFree(pszPath);
+    return path;
 }
 
 static std::string iden_factory_WinMyDocuments(CSimpleIniA *ini, class Settings *settings_client, class Settings *settings_server, class Local_Storage *local_storage)
