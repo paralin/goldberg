@@ -477,6 +477,15 @@ std::string Local_Storage::get_game_settings_path()
 
 std::string Local_Storage::get_user_appdata_path()
 {
+    std::string env_save_path = get_env_variable("GseSavePath");
+    if (env_save_path.length()) {
+        if (env_save_path.back() != PATH_SEPARATOR[0]) {
+            env_save_path = env_save_path.append(PATH_SEPARATOR);
+        }
+
+        return env_save_path;
+    }
+
     std::string user_appdata_path("SAVE");
 #if defined(STEAM_WIN32)
     WCHAR szPath[MAX_PATH] = {};
