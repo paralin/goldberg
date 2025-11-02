@@ -496,6 +496,8 @@ bool Steam_User::GetUserDataFolder( char *pchBuffer, int cubBuffer )
 // Starts voice recording. Once started, use GetVoice() to get the data
 void Steam_User::StartVoiceRecording( )
 {
+    if (!settings->enable_voice_chat) return;
+
     if (!voicechat->IsRecordingActive()) {
         PRINT_DEBUG_ENTRY();
 
@@ -511,6 +513,8 @@ void Steam_User::StartVoiceRecording( )
 void Steam_User::StopVoiceRecording( )
 {
     PRINT_DEBUG_ENTRY();
+    if (!settings->enable_voice_chat) return;
+
     voicechat->StopVoiceRecording();
 }
 
@@ -524,6 +528,7 @@ EVoiceResult Steam_User::GetAvailableVoice( uint32 *pcbCompressed, uint32 *pcbUn
 
     if (pcbCompressed) *pcbCompressed = 0;
     if (pcbUncompressed_Deprecated) *pcbUncompressed_Deprecated = 0;
+    if (!settings->enable_voice_chat) return k_EVoiceResultNoData;
 
     // some games like appid 34330 don't call this
     StartVoiceRecording();
@@ -562,6 +567,7 @@ EVoiceResult Steam_User::GetVoice( bool bWantCompressed, void *pDestBuffer, uint
     PRINT_DEBUG_ENTRY();
     if (nBytesWritten) *nBytesWritten = 0;
     if (nUncompressBytesWritten_Deprecated) *nUncompressBytesWritten_Deprecated = 0;
+    if (!settings->enable_voice_chat) return k_EVoiceResultNoData;
 
     // should we have this here ? -detanup
     // some games might not initialize this.
