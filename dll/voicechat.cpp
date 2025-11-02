@@ -299,7 +299,9 @@ EVoiceResult VoiceChat::GetAvailableVoice(uint32_t* pcbCompressed) {
 
     if (encodedQueue.empty()) return k_EVoiceResultNoData;
 
-    *pcbCompressed = static_cast<uint32_t>(encodedQueue.front().size());
+    auto availableBytes = static_cast<uint32_t>(encodedQueue.front().size());
+    *pcbCompressed = availableBytes;
+    PRINT_DEBUG("available %u bytes of voice data", availableBytes);
     return k_EVoiceResultOK;
 }
 
@@ -318,22 +320,29 @@ EVoiceResult VoiceChat::GetVoice(bool bWantCompressed, void* pDestBuffer, uint32
     auto& encodedVoice = encodedQueue.front();
 
     EVoiceResult ret = k_EVoiceResultOK;
+    uint32_t actualWrittenBytes = 0;
     if (bWantCompressed) {
         if (cbDestBufferSize < encodedVoice.size()) {
             ret = k_EVoiceResultBufferTooSmall;
         }
         else {
             memcpy(pDestBuffer, encodedVoice.data(), encodedVoice.size());
-            *nBytesWritten = static_cast<uint32_t>(encodedVoice.size());
+            actualWrittenBytes = static_cast<uint32_t>(encodedVoice.size());
         }
     }
     else {
         ret = DecompressVoice(reinterpret_cast<const void*>(encodedVoice.data()), (uint32_t)encodedVoice.size(),
-            pDestBuffer, cbDestBufferSize, nBytesWritten, SAMPLE_RATE);
+            pDestBuffer, cbDestBufferSize, &actualWrittenBytes, SAMPLE_RATE);
     }
+
+    *nBytesWritten = actualWrittenBytes;
 
     if (k_EVoiceResultOK == ret) {
         encodedQueue.pop();
+        PRINT_DEBUG("returned %u bytes of voice data", actualWrittenBytes);
+    }
+    else {
+        PRINT_DEBUG("[X] Failed to get voice data <%i>", ret);
     }
     return ret;
 }
@@ -368,6 +377,7 @@ EVoiceResult VoiceChat::DecompressVoice(const void* pCompressed, uint32_t cbComp
     // https://opus-codec.org/docs/html_api/group__opusdecoder.html#ga1a8b923c1041ad4976ceada237e117ba
     // "[out] 	pcm 	opus_int16*: Output signal (interleaved if 2 channels). length is frame_size*channels*sizeof(opus_int16)"
     uint32_t bytesRequired = samplesPerChannel * CHANNELS_RECORDING * sizeof(opus_int16);
+    PRINT_DEBUG("required=%u bytes, buffer size=%u bytes", bytesRequired, cbDestBufferSize);
     // https://partner.steamgames.com/doc/api/ISteamUser#DecompressVoice
     // "nBytesWritten: Returns the number of bytes written to pDestBuffer,
     // or size of the buffer required to decompress the given data
