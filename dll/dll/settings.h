@@ -369,6 +369,9 @@ public:
     // free weekend
     bool free_weekend = false;
 
+    // voice chat
+    bool enable_voice_chat = false;
+
 
 #ifdef LOBBY_CONNECT
     static constexpr const bool is_lobby_connect = true;
