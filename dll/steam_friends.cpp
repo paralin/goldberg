@@ -865,7 +865,7 @@ void Steam_Friends::ActivateGameOverlayInviteDialog( CSteamID steamIDLobby )
 
     // Invite all friends playing the same game
     for (auto &fr : friends) {
-        if (settings->hasOverlayAutoSendToFriend(fr.id()) && is_appid_compatible(&fr) && steamIDLobby.IsValid()) {
+        if (settings->hasOverlayAutoSendToFriend(fr.id()) && is_appid_compatible(&fr) && steamIDLobby.IsValid() && fr.lobby_id() != settings->get_lobby().ConvertToUint64()) {
             uint64 friend_id = (uint64)fr.id();
 
             Steam_Matchmaking* steamMatchmaking = get_steam_client()->steam_matchmaking;
@@ -1388,7 +1388,7 @@ void Steam_Friends::ActivateGameOverlayInviteDialogConnectString( const char *pc
 
     // Invite all friends playing the same game
     for (auto &fr : friends) {
-        if (settings->hasOverlayAutoSendToFriend(fr.id()) && is_appid_compatible(&fr)) {
+        if (settings->hasOverlayAutoSendToFriend(fr.id()) && is_appid_compatible(&fr) && fr.lobby_id() != settings->get_lobby().ConvertToUint64()) {
             uint64 friend_id = (uint64)fr.id();
 
             InviteUserToGame(friend_id, pchConnectString);
