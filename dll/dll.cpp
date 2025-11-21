@@ -324,9 +324,12 @@ static void *create_client_interface(const char *ver)
         } else if (strcmp(ver, STEAMCLIENT_INTERFACE_VERSION) == 0) {
             return static_cast<ISteamClient *>(client_ptr);
         }
+
+        client_ptr->report_missing_impl_and_exit(ver, EMU_FUNC_NAME);
     }
     
-    client_ptr->report_missing_impl_and_exit(ver, EMU_FUNC_NAME);
+    // Assuming old games (1110100) and old version of Facepunch.Steamworks call this first then it will throw because this is not here.
+    return get_steam_client()->GetISteamGenericInterface(SteamAPI_GetHSteamUser(), SteamAPI_GetHSteamPipe(), pszVersion);
 }
 
 STEAMAPI_API void * S_CALLTYPE SteamInternal_CreateInterface( const char *ver )
