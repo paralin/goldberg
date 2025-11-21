@@ -329,7 +329,7 @@ static void *create_client_interface(const char *ver)
     }
     
     // Assuming old games (1110100) and old version of Facepunch.Steamworks call this first then it will throw because this is not here.
-    return get_steam_client()->GetISteamGenericInterface(SteamAPI_GetHSteamUser(), SteamAPI_GetHSteamPipe(), pszVersion);
+    return get_steam_client()->GetISteamGenericInterface(SteamAPI_GetHSteamUser(), SteamAPI_GetHSteamPipe(), ver);
 }
 
 STEAMAPI_API void * S_CALLTYPE SteamInternal_CreateInterface( const char *ver )
