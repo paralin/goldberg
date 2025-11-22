@@ -255,11 +255,16 @@ bool P2p_Manager::send_packet(CSteamID my_id, CSteamID steamIDRemote, const void
     msg.mutable_network()->set_channel(nChannel);
     msg.mutable_network()->set_data(pubData, cubData);
 
-    bool ret = network->sendTo(&msg, reliable);
-    PRINT_DEBUG(
-        "Sent remote message with size=[%zu] from=[%llu] to=[%llu], is_ok=%u",
-        msg.network().data().size(), (uint64)msg.source_id(), (uint64)msg.dest_id(), ret
-    );
+    bool ret = false;
+    {
+        std::lock_guard lock(global_mutex);
+
+        ret = network->sendTo(&msg, reliable);
+        PRINT_DEBUG(
+            "Sent remote message with size=[%zu] from=[%llu] to=[%llu], is_ok=%u",
+            msg.network().data().size(), (uint64)msg.source_id(), (uint64)msg.dest_id(), ret
+        );
+    }
 
     return ret;
 }
