@@ -19,7 +19,7 @@ env:
 
 jobs:
   deps-build:
-    runs-on: "windows-2022"
+    runs-on: "windows-2025"
     if: ${{ !cancelled() }}
 
     steps:

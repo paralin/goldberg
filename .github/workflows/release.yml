@@ -21,7 +21,7 @@ jobs:
 
   emu-win-prep:
     needs: ["emu-win-all"]
-    runs-on: "windows-2022"
+    runs-on: "windows-2025"
     steps:
       # on Windows Git will auto change line ending to CRLF, not preferable
       - name: "Ensure LF line ending"
