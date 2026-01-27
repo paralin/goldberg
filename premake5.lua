@@ -508,7 +508,7 @@ end
 
 filter {} -- reset the filter and remove all active keywords
 configurations { "debug", "release", }
-platforms { "x64", "x32", }
+platforms { "x64", "x86", }
 language "C++"
 cppdialect "C++17"
 cdialect "C17"
@@ -518,11 +518,9 @@ filter {} -- reset the filter and remove all active keywords
 characterset "Unicode"
 staticruntime "on" -- /MT or /MTd
 runtime "Release" -- ensure we never link with /MTd, otherwise deps linking will fail
-flags {
-    "NoPCH", -- no precompiled header on Windows
-    "MultiProcessorCompile", -- /MP "Enable Visual Studio to use multiple compiler processes when building"
-    "RelativeLinks",
-}
+enablepch "Off" -- no precompiled header on Windows
+multiprocessorcompile "On" -- /MP "Enable Visual Studio to use multiple compiler processes when building"
+userelativelinks "On"
 targetprefix "" -- prevent adding the prefix libxxx on linux
 visibility "Hidden" -- hide all symbols by default on GCC (unless they are marked visible)
 linkgroups "On" -- turn off the awful order dependent linking on gcc/clang, causes the linker to go back and forth to find missing symbols
@@ -553,7 +551,7 @@ vpaths { -- just for visual niceness, see: https://premake.github.io/docs/vpaths
 
 -- arch
 ---------
-filter { "platforms:x32", }
+filter { "platforms:x86", }
     architecture "x86" 
 filter { "platforms:x64", }
     architecture "x86_64"
@@ -673,7 +671,7 @@ filter { 'options:incexamples', 'system:not windows', }
     }
 
 -- deps
-filter { 'options:incdeps', "platforms:x32", }
+filter { 'options:incdeps', "platforms:x86", }
     files {
         table_postfix_items(x32_deps_include, '/**.h'),
         table_postfix_items(x32_deps_include, '/**.hxx'),
@@ -740,7 +738,7 @@ project "api_regular"
 
     -- name
     ---------
-    filter { "system:windows", "platforms:x32", }
+    filter { "system:windows", "platforms:x86", }
         targetname "steam_api"
     filter { "system:windows", "platforms:x64", }
         targetname "steam_api64"
@@ -749,7 +747,7 @@ project "api_regular"
 
 
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
         }
@@ -776,7 +774,7 @@ project "api_regular"
             "dll/wrap.cpp"
         }
     -- Windows x32 common source files
-    filter { "system:windows", "platforms:x32", "options:winrsrc", }
+    filter { "system:windows", "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/api/32/resources.rc"
         }
@@ -805,7 +803,7 @@ project "api_regular"
     -- libs search dir
     ---------
     -- x32 libs search dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         libdirs {
             x32_deps_libdir,
         }
@@ -827,7 +825,7 @@ project "api_experimental"
 
     -- name
     ---------
-    filter { "system:windows", "platforms:x32", }
+    filter { "system:windows", "platforms:x86", }
         targetname "steam_api"
     filter { "system:windows", "platforms:x64", }
         targetname "steam_api64"
@@ -847,7 +845,7 @@ project "api_experimental"
     -- include dir
     ---------
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
             x32_deps_overlay_include,
@@ -871,7 +869,7 @@ project "api_experimental"
         'libs/detours/uimports.cc',
     }
     -- deps
-    filter { 'options:incdeps', "platforms:x32", }
+    filter { 'options:incdeps', "platforms:x86", }
         files {
             table_postfix_items(x32_deps_overlay_include, '/**.h'),
             table_postfix_items(x32_deps_overlay_include, '/**.hxx'),
@@ -889,7 +887,7 @@ project "api_experimental"
             "dll/wrap.cpp"
         }
     -- Windows x32 common source files
-    filter { "system:windows", "platforms:x32", "options:winrsrc", }
+    filter { "system:windows", "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/api/32/resources.rc"
         }
@@ -928,7 +926,7 @@ project "api_experimental"
     -- libs search dir
     ---------
     -- x32 libs search dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         libdirs {
             x32_deps_libdir,
             x32_deps_overlay_libdir,
@@ -958,7 +956,7 @@ project "steamclient_experimental"
 
     -- name
     ---------
-    filter { "system:windows", "platforms:x32", }
+    filter { "system:windows", "platforms:x86", }
         targetname "steamclient"
     filter { "system:windows", "platforms:x64", }
         targetname "steamclient64"
@@ -978,7 +976,7 @@ project "steamclient_experimental"
     -- include dir
     ---------
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
             x32_deps_overlay_include,
@@ -1004,7 +1002,7 @@ project "steamclient_experimental"
         'dll/flat.cpp',
     }
     -- deps
-    filter { 'options:incdeps', "platforms:x32", }
+    filter { 'options:incdeps', "platforms:x86", }
         files {
             table_postfix_items(x32_deps_overlay_include, '/**.h'),
             table_postfix_items(x32_deps_overlay_include, '/**.hxx'),
@@ -1022,7 +1020,7 @@ project "steamclient_experimental"
             "dll/wrap.cpp"
         }
     -- Windows x32 common source files
-    filter { "system:windows", "platforms:x32", "options:winrsrc", }
+    filter { "system:windows", "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/client/32/resources.rc"
         }
@@ -1060,7 +1058,7 @@ project "steamclient_experimental"
     -- libs search dir
     ---------
     -- x32 libs search dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         libdirs {
             x32_deps_libdir,
             x32_deps_overlay_libdir,
@@ -1098,7 +1096,7 @@ project "tool_lobby_connect"
     ---------
     -- common include dir
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
         }
@@ -1123,7 +1121,7 @@ project "tool_lobby_connect"
         'dll/flat.cpp',
     }
     -- Windows x32 common source files
-    filter { "system:windows", "platforms:x32", "options:winrsrc", }
+    filter { "system:windows", "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/launcher/32/resources.rc"
         }
@@ -1153,7 +1151,7 @@ project "tool_lobby_connect"
     -- libs search dir
     ---------
     -- x32 libs search dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         libdirs {
             x32_deps_libdir,
         }
@@ -1220,7 +1218,7 @@ project "lib_game_overlay_renderer"
 
     -- name
     ---------
-    filter { "system:windows", "platforms:x32", }
+    filter { "system:windows", "platforms:x86", }
         targetname "GameOverlayRenderer"
     filter { "system:windows", "platforms:x64", }
         targetname "GameOverlayRenderer64"
@@ -1231,7 +1229,7 @@ project "lib_game_overlay_renderer"
     -- include dir
     ---------
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
         }
@@ -1252,7 +1250,7 @@ project "lib_game_overlay_renderer"
         "common_helpers/os_detector.h",
     }
     -- x32 common source files
-    filter { "system:windows", "platforms:x32", "options:winrsrc", }
+    filter { "system:windows", "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/game_overlay_renderer/32/resources.rc"
         }
@@ -1280,7 +1278,7 @@ project "steamclient_experimental_stub"
 
     -- name
     ---------
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         targetname "steamclient"
     filter { "platforms:x64", }
         targetname "steamclient64"
@@ -1293,7 +1291,7 @@ project "steamclient_experimental_stub"
         "steamclient/steamclient.cpp",
     }
     -- x32 common source files
-    filter { "platforms:x32", "options:winrsrc", }
+    filter { "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/client/32/resources.rc"
         }
@@ -1316,7 +1314,7 @@ project "steamclient_experimental_extra"
     -- include dir
     ---------
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
         }
@@ -1342,7 +1340,7 @@ project "steamclient_experimental_extra"
         'libs/detours/uimports.cc',
     }
     -- x32 common source files
-    filter { "platforms:x32", "options:winrsrc", }
+    filter { "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/client/32/resources.rc"
         }
@@ -1434,7 +1432,7 @@ project "steamclient_experimental_loader"
         "libs/simpleini/**",
     }
     -- x32 common source files
-    filter { "platforms:x32", "options:winrsrc", }
+    filter { "platforms:x86", "options:winrsrc", }
         files {
             "resources/win/launcher/32/resources.rc"
         }
@@ -1546,7 +1544,7 @@ project "steamclient_regular"
     -- include dir
     ---------
     -- x32 include dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         includedirs {
             x32_deps_include,
         }
@@ -1579,7 +1577,7 @@ project "steamclient_regular"
     -- libs search dir
     ---------
     -- x32 libs search dir
-    filter { "platforms:x32", }
+    filter { "platforms:x86", }
         libdirs {
             x32_deps_libdir,
         }
