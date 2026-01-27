@@ -41,7 +41,7 @@ set /a "GEN_PROJECT=1"
 
   :: build deps
   if %BUILD_DEPS% equ 1 (
-    set "CMAKE_GENERATOR=Visual Studio 2026"
+    set "CMAKE_GENERATOR=Visual Studio 18 2026"
     call "%PREMAKE_EXE%" --file="premake5-deps.lua" --64-build --32-build --all-ext --all-build --j=2 --verbose --clean --os=windows vs2026 || (
       goto :end_script_with_err
     )

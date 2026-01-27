@@ -142,7 +142,7 @@ The only times you'll need to rebuild them is either when their separete build f
 Open CMD in the repo folder, then run the following
 * To build using `Visual Studio`
   ```batch
-  set "CMAKE_GENERATOR=Visual Studio 2026"
+  set "CMAKE_GENERATOR=Visual Studio 18 2026"
   third-party\common\win\premake\premake5.exe --file=premake5-deps.lua --64-build --32-build   --all-ext --all-build --verbose --os=windows vs2026
   ```
 * To build using `MSYS2` **this is currently experimental and will not work due to ABI differences**  
