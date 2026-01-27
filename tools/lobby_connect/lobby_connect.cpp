@@ -85,12 +85,9 @@ int main() {
                 std::string connect = "+connect_lobby " + std::to_string(friend_info.m_steamIDLobby.ConvertToUint64());
                 std::cout << arguments.size() << " - " << name << " is playing " << appid << " (" << connect << ").\n";
                 arguments.emplace_back(connect, appid);
-            }
-        }
-		else if (isSuccess) {
+        } else if (isSuccess) {
 			std::cout << name << " is playing " << appid << std::endl;
-		}
-		else {
+		} else {
 			std::cout << name << " is found in network " << std::endl;
 		}
     }
