@@ -2,7 +2,7 @@
 
 https://gitlab.kitware.com/cmake/cmake
 
-VERSION: https://github.com/Kitware/CMake/releases/tag/v3.30.2
+VERSION: https://github.com/Kitware/CMake/releases/tag/v4.1.5
 
 #### LICENSE
 
