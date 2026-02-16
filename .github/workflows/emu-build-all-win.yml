@@ -107,7 +107,7 @@ jobs:
         shell: "cmd"
         working-directory: "${{ github.workspace }}/build/project/vs2026/win"
         run: |
-          msbuild /nologo /target:${{ matrix.prj }} /m:2 /v:n /p:Configuration=${{ matrix.cfg }},Platform=${{ matrix.arch }} gbe.sln
+          msbuild /nologo /target:${{ matrix.prj }} /m:2 /v:n /p:Configuration=${{ matrix.cfg }},Platform=${{ matrix.arch }} gbe.slnx
 
       # upload artifact/package to github Actions
       - name: "Upload target package"
