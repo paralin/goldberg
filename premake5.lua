@@ -717,7 +717,7 @@ filter { "system:windows", "options:dosstub", }
 -- sign
 filter { "system:windows", "options:winsign", }
     postbuildcommands {
-        '"' .. signer_tool .. '" %[%{!cfg.buildtarget.abspath}]',
+        '"' .. signer_tool .. '" %[%{!cfg.buildtarget.directory}%{!cfg.buildtarget.name}]',
     }
 filter {} -- reset the filter and remove all active keywords
 end
