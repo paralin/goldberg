@@ -5,7 +5,7 @@ require("premake", ">=5.0.0-beta2")
 -- common ones
 -- ============
 -- Unix Makefiles
--- Visual Studio 17 2022
+-- Visual Studio 18 2026
 -- MSYS Makefiles
 
 local os_iden = '' -- identifier
