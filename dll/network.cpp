@@ -928,8 +928,10 @@ void Networking::send_announce_broadcasts()
     size_t size = msg.ByteSizeLong(); 
     std::vector<char> buffer(size);
     msg.SerializeToArray(&buffer[0], static_cast<int>(size));
-    send_broadcasts(udp_socket, htons(DEFAULT_PORT), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
-    if (udp_port != DEFAULT_PORT) {
+    for (uint16 i = DEFAULT_PORT; i < DEFAULT_PORT + NUM_QUERY_PORTS; i++) {
+        send_broadcasts(udp_socket, htons(i), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
+    }
+    if (udp_port < DEFAULT_PORT || udp_port >= DEFAULT_PORT + NUM_QUERY_PORTS) {
         send_broadcasts(udp_socket, htons(udp_port), &buffer[0], static_cast<unsigned long>(size), &this->custom_broadcasts);
     }
 
