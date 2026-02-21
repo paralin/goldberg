@@ -352,8 +352,9 @@ static bool send_broadcasts(sock_t sock, uint16 port, char *data, unsigned long 
         return false;
 
     for (int i = 0; i < number_broadcasts; i++) {
-        ret = send_packet_to(sock, broadcasts[i], data, length);
         IP_PORT ip_port = broadcasts[i];
+        ip_port.port = port;
+        ret = send_packet_to(sock, ip_port, data, length);
     }
 
     /** 
