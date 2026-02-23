@@ -364,36 +364,52 @@ public:
     // https://github.com/ValveSoftware/Proton/blob/proton_9.0/lsteamclient/steamworks_sdk_099v/isteamclient.h
     // https://workshop.perforce.com/files/guest/knut_wikstrom/ValveSDKCode/public/steam/isteamclient.h
 
-    // creates a global instance of a steam user, so that other processes can share it
-    // used by the steam UI, to share it's account info/connection with any games it launches
-    // fails (returns NULL) if an existing instance already exists
-    HSteamUser CreateGlobalUser( HSteamPipe *phSteamPipe );
-    // retrieves the IVac interface associated with the handle
-    // there is normally only one instance of VAC running, but using this connects it to the right user/account
-    void *GetIVAC( HSteamUser hSteamUser );
-    // returns the name of a universe
-    const char *GetUniverseName( EUniverse eUniverse );
-    void *GetISteamBilling_old( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion );
-
+    // SteamClient001 -----------------------------------------------------
     HSteamUser CreateGlobalInstance();
     HSteamUser ConnectToGlobalInstance();
     HSteamUser CreateLocalInstance();
     void ReleaseInstance( HSteamUser hSteamUser );
     ISteamUser *GetISteamUser( HSteamUser hSteamUser, const char *pchVersion );
-    ISteamGameServer *GetISteamGameServer( HSteamUser hSteamUser, const char *pchVersion );
-    bool BMainLoop( uint64 time );
+    // retrieves the IVac interface associated with the handle
+    // there is normally only one instance of VAC running, but using this connects it to the right user/account
+    void *GetIVAC( HSteamUser hSteamUser );
     bool BMainLoop( uint64 time, bool unk );
-    EUniverse GetConnectedUniverse();
-    bool BGetCallback( HSteamPipe hSteamPipe, CallbackMsg_t *pCallbackMsg, int *unk );
-    void FreeLastCallback( HSteamPipe hSteamPipe );
-    void SetEUniverse( EUniverse universe );
     void Test_SetSpew( const char *unk1, int unk2 ) {}
     void Test_SetSpewFunc( void *unk ) {}
     void Test_OverrideIPs( uint32 unIPPublic, uint32 unIPPrivate ) {}
     void Test_SetServerLoadState( bool unk1, bool unk2 ) {}
     void Test_SetStressMode( bool unk ) {}
     int Test_GetStatsVConn() { return 0; }
+    // SteamClient001 -----------------------------------------------------
+
+    // SteamClient002 -----------------------------------------------------
     void Test_RemoveAllClients() {}
+    // SteamClient002 -----------------------------------------------------
+
+    // SteamClient003 -----------------------------------------------------
+    bool BMainLoop( uint64 time );
+    // SteamClient003 -----------------------------------------------------
+
+    // SteamClient004 -----------------------------------------------------
+    ISteamGameServer *GetISteamGameServer( HSteamUser hSteamUser, const char *pchVersion );
+    // SteamClient004 -----------------------------------------------------
+
+    // SteamClient005 -----------------------------------------------------
+    // creates a global instance of a steam user, so that other processes can share it
+    // used by the steam UI, to share it's account info/connection with any games it launches
+    // fails (returns NULL) if an existing instance already exists
+    HSteamUser CreateGlobalUser( HSteamPipe *phSteamPipe );
+    EUniverse GetConnectedUniverse();
+    // returns the name of a universe
+    const char *GetUniverseName( EUniverse eUniverse );
+    bool BGetCallback( HSteamPipe hSteamPipe, CallbackMsg_t *pCallbackMsg, int *unk );
+    void FreeLastCallback( HSteamPipe hSteamPipe );
+    void SetEUniverse( EUniverse universe );
+    // SteamClient005 -----------------------------------------------------
+
+    // SteamClient006 -----------------------------------------------------
+    void *GetISteamBilling_old( HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char *pchVersion );
+    // SteamClient006 -----------------------------------------------------
     // older sdk ----------------------------------------------------------
 
     void report_missing_impl(std::string_view itf, std::string_view caller);

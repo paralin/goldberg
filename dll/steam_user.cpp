@@ -906,16 +906,11 @@ bool Steam_User::BSetDurationControlOnlineState( EDurationControlOnlineState eNe
 }
 
 // older sdk -----------------------------------------------
+// SteamUser001 --------------------------------------------
 void Steam_User::Init( ICMCallback001 *cmcallback, ISteam2Auth *steam2auth )
 {
     PRINT_DEBUG_ENTRY();
     callbacks_old1 = cmcallback;
-}
-
-void Steam_User::Init( ICMCallback *cmcallback, ISteam2Auth *steam2auth )
-{
-    PRINT_DEBUG_ENTRY();
-    callbacks_old2 = cmcallback;
 }
 
 int Steam_User::ProcessCall( int unk )
@@ -941,7 +936,9 @@ bool Steam_User::GSSendLogonRequest( CSteamID *steamID )
     PRINT_DEBUG("%llu", (*steamID).ConvertToUint64());
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    // Note that SteamID passed into this comes from Steam.dll so it won't match the client's Goldberg SteamID.
+    // At this point, client auth is still primarily done via Steam2 (Steam.dll), Steam3 is supplementary.
+    // As such, there's not much really needed from us besides firing approve callback.
+    // Since SteamID passed into this comes from Steam.dll, it won't match the client's Goldberg SteamID.
     std::pair<CSteamID, std::chrono::high_resolution_clock::time_point> entry(*steamID, std::chrono::high_resolution_clock::now());
     player_auths.push_back(entry);
     get_steam_client()->steam_gameserver->add_player(*steamID);
@@ -968,13 +965,25 @@ bool Steam_User::GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPla
     PRINT_DEBUG_TODO();
     return true;
 }
+// SteamUser001 --------------------------------------------
 
+// SteamUser002 (old) --------------------------------------
 bool Steam_User::GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion )
 {
     PRINT_DEBUG_ENTRY();
     return get_steam_client()->steam_gameserver->Obsolete_GSSetStatus(nAppIdServed, unServerFlags, cPlayers, cPlayersMax, cBotPlayers, unGamePort, pchServerName, pchGameDir, pchMapName, pchVersion);
 }
+// SteamUser002 (old) --------------------------------------
 
+// SteamUser002 (new) --------------------------------------
+void Steam_User::Init( ICMCallback *cmcallback, ISteam2Auth *steam2auth )
+{
+    PRINT_DEBUG_ENTRY();
+    callbacks_old2 = cmcallback;
+}
+// SteamUser002 (new) --------------------------------------
+
+// SteamUser004 (old) --------------------------------------
 bool Steam_User::BGetCallback( int *piCallback, uint8 **ppubParam, int *unk )
 {
     PRINT_DEBUG_ENTRY();
@@ -1001,22 +1010,6 @@ void Steam_User::FreeLastCallback()
         return;
 
     steamclient_free_callback(pipe);
-}
-
-int Steam_User::GetSteamTicket( void *pBlob, int cbMaxBlob )
-{
-    PRINT_DEBUG_ENTRY();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
-
-    if (cbMaxBlob < STEAM_TICKET_MIN_SIZE) return 0;
-    if (!pBlob) return 0;
-
-    uint32 out_size = STEAM_AUTH_TICKET_SIZE;
-    auth_manager->getTicketData(pBlob, cbMaxBlob, &out_size);
-
-    if (out_size > STEAM_AUTH_TICKET_SIZE)
-        return 0;
-    return out_size;
 }
 
 const char *Steam_User::GetPlayerName()
@@ -1090,6 +1083,23 @@ int32 Steam_User::AddFriendByName( const char *pchEmailOrAccountName )
     PRINT_DEBUG_ENTRY();
     return get_steam_client()->steam_friends->AddFriendByName(pchEmailOrAccountName);
 }
+
+int Steam_User::GetSteamTicket( void *pBlob, int cbMaxBlob )
+{
+    PRINT_DEBUG_ENTRY();
+    std::lock_guard<std::recursive_mutex> lock(global_mutex);
+
+    if (cbMaxBlob < STEAM_TICKET_MIN_SIZE) return 0;
+    if (!pBlob) return 0;
+
+    uint32 out_size = STEAM_AUTH_TICKET_SIZE;
+    auth_manager->getTicketData(pBlob, cbMaxBlob, &out_size);
+
+    if (out_size > STEAM_AUTH_TICKET_SIZE)
+        return 0;
+    return out_size;
+}
+// SteamUser004 (old) --------------------------------------
 // older sdk -----------------------------------------------
 
 void Steam_User::RunCallbacks()

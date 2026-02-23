@@ -1755,13 +1755,7 @@ STEAMCLIENT_API void Steam_TerminateGameConnection( HSteamUser hUser, HSteamPipe
 }
 
 // older sdk ----------------------------------------------------------
-STEAMCLIENT_API HSteamUser Steam3_ConnectToGlobalInstance()
-{
-    PRINT_DEBUG_ENTRY();
-    get_steam_client()->steamclient_version = 4;
-    return get_steam_client()->ConnectToGlobalInstance();
-}
-
+// SteamClient002 -----------------------------------------------------
 STEAMCLIENT_API HSteamUser Steam3_CreateLocalInstance()
 {
     PRINT_DEBUG_ENTRY();
@@ -1890,6 +1884,15 @@ STEAMCLIENT_API void Steam3_Init( HSteamUser hUser,
     auto [it, _] = capi_cmcallback_map.insert_or_assign(hUser, new_cmcallback);
     su->Init(&it->second, nullptr);
 }
+// SteamClient002 -----------------------------------------------------
+
+// SteamClient004 -----------------------------------------------------
+STEAMCLIENT_API HSteamUser Steam3_ConnectToGlobalInstance()
+{
+    PRINT_DEBUG_ENTRY();
+    get_steam_client()->steamclient_version = 4;
+    return get_steam_client()->ConnectToGlobalInstance();
+}
 
 STEAMCLIENT_API steam_bool Steam3_GSSendUserConnect( HSteamUser hUser, uint64 steamID, uint32 unIPPublic, uint32 unk )
 {
@@ -1912,7 +1915,7 @@ STEAMCLIENT_API steam_bool Steam3_GSSendUserStatusResponse( HSteamUser hUser, ui
     return gs->GSSendUserStatusResponse(steamID, nSecondsConnected, nSecondsSinceLast);
 }
 
-STEAMCLIENT_API steam_bool Steam3_BGetCallback( HSteamUser hUser, int *piCallback, uint8_t **ppubParam, int *unk )
+STEAMCLIENT_API steam_bool Steam3_BGetCallback( HSteamUser hUser, int *piCallback, uint8 **ppubParam, int *unk )
 {
     PRINT_DEBUG_ENTRY();
     if (get_steam_client()->steamclient_version != 4)
@@ -1947,4 +1950,5 @@ STEAMCLIENT_API void Steam3_SetLocalIPBinding( uint32 unIP, uint16 usLocalPort )
     PRINT_DEBUG_ENTRY();
     get_steam_client()->SetLocalIPBinding(unIP, usLocalPort);
 }
+// SteamClient004 -----------------------------------------------------
 // older sdk ----------------------------------------------------------

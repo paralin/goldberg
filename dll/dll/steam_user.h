@@ -329,8 +329,8 @@ public:
     void RunCallbacks();
 
     // older sdk -----------------------------------------------
+    // SteamUser001 --------------------------------------------
     void Init( ICMCallback001 *cmcallback, ISteam2Auth *steam2auth );
-    void Init( ICMCallback *cmcallback, ISteam2Auth *steam2auth );
     int ProcessCall( int unk );
     virtual void LogOn( CSteamID *steamID );
     virtual int CreateAccount( const char *unk1, void *unk2, void *unk3, const char *unk4, int unk5, void *unk6 );
@@ -338,12 +338,31 @@ public:
     virtual bool GSSendDisconnect( CSteamID *steamID );
     virtual bool GSSendStatusResponse( CSteamID *steamID, int nSecondsConnected, int nSecondsSinceLast );
     virtual bool GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax );
-    virtual bool GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion );
+    virtual void Test_SuspendActivity() {}
+    virtual void Test_ResumeActivity() {}
+    virtual void Test_SendVACResponse( int unk1, void *unk2, int unk3 ) {}
+    virtual void Test_SetFakePrivateIP( uint32 ip ) {}
+    virtual void Test_SendBigMessage() {}
+    virtual bool Test_BBigMessageResponseReceived() { return true; }
+    virtual void Test_SetPktLossPct( int unk1 ) {}
+    virtual void Test_SetForceTCP( bool unk1 ) {}
+    virtual void Test_Heartbeat() {}
+    virtual void Test_FakeDisconnect() {}
+    virtual EUniverse Test_GetEUniverse() { return k_EUniversePublic; }
+    // SteamUser001 --------------------------------------------
 
+    // SteamUser002 (old) --------------------------------------
+    virtual bool GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion );
+    virtual void Test_SetMaxUDPConnectionAttempts( int unk1 ) {}
+    // SteamUser002 (old) --------------------------------------
+
+    // SteamUser002 (new) --------------------------------------
+    void Init( ICMCallback *cmcallback, ISteam2Auth *steam2auth );
+    // SteamUser002 (new) --------------------------------------
+
+    // SteamUser004 (old) --------------------------------------
     bool BGetCallback( int *piCallback, uint8 **ppubParam, int *unk );
     void FreeLastCallback();
-    int GetSteamTicket( void *pBlob, int cbMaxBlob );
-
     const char *GetPlayerName();
     void SetPlayerName( const char *pchPersonaName );
     EPersonaState GetFriendStatus();
@@ -356,19 +375,8 @@ public:
     bool GetFriendGamePlayed( CSteamID steamIDFriend, int32 *pnGameID, uint32 *punGameIP, uint16 *pusGamePort );
     const char *GetPlayerName( CSteamID steamIDFriend );
     int32 AddFriendByName( const char *pchEmailOrAccountName );
-
-    virtual void Test_SuspendActivity() {}
-    virtual void Test_ResumeActivity() {}
-    virtual void Test_SendVACResponse( int unk1, void *unk2, int unk3 ) {}
-    virtual void Test_SetFakePrivateIP( uint32 ip ) {}
-    virtual void Test_SendBigMessage() {}
-    virtual bool Test_BBigMessageResponseReceived() { return true; }
-    virtual void Test_SetPktLossPct( int unk1 ) {}
-    virtual void Test_SetForceTCP( bool unk1 ) {}
-    virtual void Test_SetMaxUDPConnectionAttempts( int unk1 ) {}
-    virtual void Test_Heartbeat() {}
-    virtual void Test_FakeDisconnect() {}
-    virtual EUniverse Test_GetEUniverse() { return k_EUniversePublic; }
+    int GetSteamTicket( void *pBlob, int cbMaxBlob );
+    // SteamUser004 (old) --------------------------------------
     // older sdk -----------------------------------------------
 };
 
