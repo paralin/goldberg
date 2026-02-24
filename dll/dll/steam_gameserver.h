@@ -377,14 +377,20 @@ public:
 
 
     // older sdk -----------------------------------------------
+    // SteamGameServer001 --------------------------------------
+    bool GSSendUserConnect( CSteamID steamID, uint32 unIPPublic, uint32 unk );
+    bool GSSendUserDisconnect( CSteamID steamID );
+    bool GSSendUserStatusResponse( CSteamID steamID, int nSecondsConnected, int nSecondsSinceLast );
+    bool Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion );
+    // SteamGameServer001 --------------------------------------
+
+    // SteamGameServer002 --------------------------------------
     void GSSetSpawnCount( uint32 ucSpawn );
     bool GSGetSteam2GetEncryptionKeyToSendToNewClient( void *pvEncryptionKey, uint32 *pcbEncryptionKey, uint32 cbMaxEncryptionKey );
     bool GSSendSteam2UserConnect(  uint32 unUserID, const void *pvRawKey, uint32 unKeyLen, uint32 unIPPublic, uint16 usPort, const void *pvCookie, uint32 cubCookie );
     bool GSSendSteam3UserConnect( CSteamID steamID, uint32 unIPPublic, const void *pvCookie, uint32 cubCookie );
     bool GSRemoveUserConnect( uint32 unUserID );
     bool GSSendUserDisconnect( CSteamID steamID, uint32 unUserID );
-    bool GSSendUserStatusResponse( CSteamID steamID, int nSecondsConnected, int nSecondsSinceLast );
-    bool Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion );
     bool GSUpdateStatus( int cPlayers, int cPlayersMax, int cBotPlayers, const char *pchServerName, const char *pchMapName );
     bool GSSetServerType( int32 nGameAppId, uint32 unServerFlags, uint32 unGameIP, uint32 unGamePort, const char *pchGameDir, const char *pchVersion );
     bool GSSetServerType2( int32 nGameAppId, uint32 unServerFlags, uint32 unGameIP, uint16 unGamePort, uint16 unSpectatorPort, uint16 usQueryPort, const char *pchGameDir, const char *pchVersion, bool bLANMode );
@@ -393,14 +399,14 @@ public:
     bool GSSetUserData( CSteamID steamID, const char *pPlayerName, uint32 nFrags );
     void GSUpdateSpectatorPort( uint16 unSpectatorPort );
     void GSSetGameType( const char *pchType );
+    // SteamGameServer002 --------------------------------------
 
+    // SteamGameServer003 --------------------------------------
     bool GSSendUserConnect( uint32 unUserID, uint32 unIPPublic, uint16 usPort, const void *pvCookie, uint32 cubCookie );
     bool GSSetServerType( int32 nGameAppId, uint32 unServerFlags, uint32 unGameIP, uint16 unGamePort, uint16 unSpectatorPort, uint16 usQueryPort, const char *pchGameDir, const char *pchVersion, bool bLANMode );
     bool GSUpdateStatus( int cPlayers, int cPlayersMax, int cBotPlayers, const char *pchServerName, const char *pSpectatorServerName, const char *pchMapName );
     bool GSGetUserAchievementStatus( CSteamID steamID, const char *pchAchievementName );
-
-    bool GSSendUserConnect( CSteamID steamID, uint32 unIPPublic, uint32 unk );
-    bool GSSendUserDisconnect( CSteamID steamID );
+    // SteamGameServer003 --------------------------------------
     // older sdk -----------------------------------------------
 
 };
