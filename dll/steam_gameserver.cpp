@@ -17,6 +17,7 @@
 
 #include "dll/steam_gameserver.h"
 #include "dll/source_query.h"
+#include "dll/dll.h"
 
 #define SEND_SERVER_RATE 5.0
 
@@ -568,15 +569,10 @@ void Steam_GameServer::SetGameType( const char *pchGameType )
 // Ask if a user has a specific achievement for this game, will get a callback on reply
 bool Steam_GameServer::BGetUserAchievementStatus( CSteamID steamID, const char *pchAchievementName )
 {
-    PRINT_DEBUG("%llu %s", steamID.ConvertToUint64(), pchAchievementName);
+    PRINT_DEBUG("%llu '%s'", steamID.ConvertToUint64(), pchAchievementName);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    GSClientAchievementStatus_t data = {};
-    data.m_bUnlocked = true;
-    data.m_SteamID = steamID.ConvertToUint64();
-    strncpy(data.m_pchAchievement, pchAchievementName, sizeof(data.m_pchAchievement) - 1);
-    callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
-    return true;
+    return get_steam_client()->steam_gameserverstats->request_user_achievement(steamID, pchAchievementName);
 }
 
 // New auth system APIs - do not mix with the old auth system APIs.
