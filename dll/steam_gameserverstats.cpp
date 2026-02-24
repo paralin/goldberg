@@ -491,9 +491,6 @@ void Steam_GameServerStats::network_callback_initial_stats(Common_Message *msg)
         PRINT_DEBUG("error got all player stats but pending request timedout/removed (doesn't exist)");
         return;
     }
-
-    // remove this pending request
-    pending_RequestUserStats.erase(it);
     
     // copy new stats
     auto &current_stats = all_users_data[user_steamid].stats;
@@ -515,6 +512,9 @@ void Steam_GameServerStats::network_callback_initial_stats(Common_Message *msg)
 
     callback_results->addCallResult(it->steamAPICall, data.k_iCallback, &data, sizeof(data));
     callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+    // remove this pending request
+    pending_RequestUserStats.erase(it);
     
     PRINT_DEBUG("server got all player stats %llu: %zu stats, %zu achievements",
         user_steamid, all_users_data[user_steamid].stats.size(), all_users_data[user_steamid].achievements.size()
