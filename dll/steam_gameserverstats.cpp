@@ -106,6 +106,45 @@ Steam_GameServerStats::~Steam_GameServerStats()
     }
 }
 
+bool Steam_GameServerStats::request_user_achievement(CSteamID steamIDUser, const char *ach_name)
+{
+    std::lock_guard<std::recursive_mutex> lock(global_mutex);
+    if (settings->disable_sharing_stats_with_gameserver) return false;
+    if (!ach_name) return false;
+
+    auto ach = find_ach(steamIDUser, ach_name);
+    if (ach) {
+        GSClientAchievementStatus_t data{};
+        data.m_bUnlocked = ach->ach.achieved();
+        data.m_SteamID = steamIDUser.ConvertToUint64();
+        strncpy(data.m_pchAchievement, ach_name, sizeof(data.m_pchAchievement) - 1);
+        callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+        return true;
+    }
+
+    struct RequestAchievement new_request{};
+    new_request.created = std::chrono::high_resolution_clock::now();
+    new_request.steamIDUser = steamIDUser;
+    new_request.achievement_name = ach_name;
+
+    pending_RequestAchievement.push_back(new_request);
+
+    auto ach_request_msg = new GameServerStats_Messages::AchievementRequest();
+    ach_request_msg->set_name(ach_name);
+
+    auto gameserverstats_msg = new GameServerStats_Messages();
+    gameserverstats_msg->set_type(GameServerStats_Messages::Request_UserAchievement);
+    gameserverstats_msg->set_allocated_achievement_request(ach_request_msg);
+
+    Common_Message msg{};
+    msg.set_allocated_gameserver_stats_messages(gameserverstats_msg);
+    msg.set_source_id(settings->get_local_steam_id().ConvertToUint64());
+    msg.set_dest_id(steamIDUser.ConvertToUint64());
+    network->sendTo(&msg, true);
+
+    return true;
+}
+
 
 // downloads stats for the user
 // returns a GSStatsReceived_t callback when completed
@@ -363,8 +402,6 @@ SteamAPICall_t Steam_GameServerStats::StoreUserStats( CSteamID steamIDUser )
 
 void Steam_GameServerStats::remove_timedout_userstats_requests()
 {
-    if (pending_RequestUserStats.empty()) return;
-
     // send all pending RequestUserStats() requests
     for (auto &pendReq : pending_RequestUserStats) {
         if (check_timedout(pendReq.created, PENDING_RequestUserStats_TIMEOUT)) {
@@ -387,6 +424,28 @@ void Steam_GameServerStats::remove_timedout_userstats_requests()
         [](const struct RequestAllStats &item) { return item.timeout; }
     );
     pending_RequestUserStats.erase(itrm, pending_RequestUserStats.end());
+
+    // send all pending BGetUserAchievementStatus requests
+    for (auto &pendReq : pending_RequestAchievement) {
+        if (check_timedout(pendReq.created, PENDING_RequestUserStats_TIMEOUT)) {
+            pendReq.timeout = true;
+
+            GSClientAchievementStatus_t data{};
+            data.m_bUnlocked = false;
+            data.m_SteamID = pendReq.steamIDUser.ConvertToUint64();
+            pendReq.achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
+            callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+            PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", pendReq.steamIDUser.ConvertToUint64());
+        }
+    }
+
+    // remove all timedout requests
+    auto itrm2 = std::remove_if(
+        pending_RequestAchievement.begin(), pending_RequestAchievement.end(),
+        [](const struct RequestAchievement &item) { return item.timeout; }
+    );
+    pending_RequestAchievement.erase(itrm2, pending_RequestAchievement.end());
 }
 
 void Steam_GameServerStats::collect_and_send_updated_user_stats()
@@ -491,9 +550,6 @@ void Steam_GameServerStats::network_callback_initial_stats(Common_Message *msg)
         PRINT_DEBUG("error got all player stats but pending request timedout/removed (doesn't exist)");
         return;
     }
-
-    // remove this pending request
-    pending_RequestUserStats.erase(it);
     
     // copy new stats
     auto &current_stats = all_users_data[user_steamid].stats;
@@ -515,12 +571,13 @@ void Steam_GameServerStats::network_callback_initial_stats(Common_Message *msg)
 
     callback_results->addCallResult(it->steamAPICall, data.k_iCallback, &data, sizeof(data));
     callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+    // remove this pending request
+    pending_RequestUserStats.erase(it);
     
     PRINT_DEBUG("server got all player stats %llu: %zu stats, %zu achievements",
         user_steamid, all_users_data[user_steamid].stats.size(), all_users_data[user_steamid].achievements.size()
     );
-
-    
 }
 
 // user has updated/new stats
@@ -556,6 +613,50 @@ void Steam_GameServerStats::network_callback_updated_stats(Common_Message *msg)
     );
 }
 
+// user responded with achievement status
+void Steam_GameServerStats::network_callback_achievement_response(Common_Message *msg)
+{
+    uint64 user_steamid = msg->source_id();
+
+    PRINT_DEBUG("player returned achievement %llu", user_steamid);
+    if (!msg->gameserver_stats_messages().has_achievement_response()) {
+        PRINT_DEBUG("error empty msg");
+        return;
+    }
+
+    const auto &ach_response_msg = msg->gameserver_stats_messages().achievement_response();
+    std::string ach_name = ach_response_msg.name();
+    const auto &ach_info = ach_response_msg.info();
+
+    // find this pending request
+    auto it = std::find_if(
+        pending_RequestAchievement.begin(), pending_RequestAchievement.end(),
+        [=](const RequestAchievement &item) {
+            return item.steamIDUser == user_steamid &&
+                item.achievement_name == ach_name;
+        }
+    );
+    if (pending_RequestAchievement.end() == it) { // timeout and already removed
+        PRINT_DEBUG("error got player achievement but pending request timedout/removed (doesn't exist)");
+        return;
+    }
+
+    all_users_data[user_steamid].achievements[ach_name].ach = ach_info;
+
+    GSClientAchievementStatus_t data{};
+    data.m_bUnlocked = ach_info.achieved();
+    data.m_SteamID = user_steamid;
+    ach_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
+    callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+    // remove this pending request
+    pending_RequestAchievement.erase(it);
+
+    PRINT_DEBUG("server got player achievement %llu: '%s' %s",
+        user_steamid, ach_name.c_str(), ach_info.achieved() ? "earned" : "unearned"
+    );
+}
+
 // only triggered when we have a message
 void Steam_GameServerStats::network_callback(Common_Message *msg)
 {
@@ -572,6 +673,11 @@ void Steam_GameServerStats::network_callback(Common_Message *msg)
     // user has updated/new stats
     case GameServerStats_Messages::UpdateUserStatsFromUser:
         network_callback_updated_stats(msg);
+    break;
+
+    // user responded with achievement status
+    case GameServerStats_Messages::Response_UserAchievement:
+        network_callback_achievement_response(msg);
     break;
     
     default:
@@ -596,6 +702,7 @@ void Steam_GameServerStats::network_callback_low_level(Common_Message *msg)
     
     case Low_Level::DISCONNECT: {
         all_users_data.erase(steamid);
+
         auto it_rm = std::remove_if(
             pending_RequestUserStats.begin(), pending_RequestUserStats.end(),
             [=](const RequestAllStats &item) { return item.steamIDUser.ConvertToUint64() == steamid; }
@@ -610,6 +717,21 @@ void Steam_GameServerStats::network_callback_low_level(Common_Message *msg)
             
             PRINT_DEBUG("RequestUserStats timeout, %llu", it_rm->steamIDUser.ConvertToUint64());
             it_rm = pending_RequestUserStats.erase(it_rm);
+        }
+
+        auto it_rm2 = std::remove_if(
+            pending_RequestAchievement.begin(), pending_RequestAchievement.end(),
+            [=](const RequestAchievement &item) { return item.steamIDUser.ConvertToUint64() == steamid; }
+        );
+        while (pending_RequestAchievement.end() != it_rm2) {
+            GSClientAchievementStatus_t data{};
+            data.m_bUnlocked = false;
+            data.m_SteamID = it_rm2->steamIDUser.ConvertToUint64();
+            it_rm2->achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
+            callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+            PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", it_rm2->steamIDUser.ConvertToUint64());
+            it_rm2 = pending_RequestAchievement.erase(it_rm2);
         }
         
         // PRINT_DEBUG("removed user %llu", steamid);
