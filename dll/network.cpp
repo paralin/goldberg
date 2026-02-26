@@ -575,7 +575,11 @@ void Networking::do_callbacks_message(Common_Message *msg)
         PRINT_DEBUG("has_steam_user_stats_messages");
         run_callbacks(CALLBACK_ID_USER_STATS, msg);
     }
-    
+
+    if (msg->has_gameserver_items_messages()) {
+        PRINT_DEBUG("has_gameserver_items_messages");
+        run_callbacks(CALLBACK_ID_GAMESERVER_ITEMS, msg);
+    }
 }
 
 bool Networking::handle_tcp(Common_Message *msg, struct TCP_Socket &socket)

@@ -206,14 +206,14 @@ message Friend_Messages {
 }
 
 message Steam_Messages {
-	enum Types {
-		FRIEND_CHAT = 0;
-	}
+    enum Types {
+        FRIEND_CHAT = 0;
+    }
 
-	Types type = 1;
-	oneof message_data {
-		bytes message = 2;
-	}
+    Types type = 1;
+    oneof message_data {
+        bytes message = 2;
+    }
 }
 
 message StatInfo {
@@ -250,7 +250,7 @@ message GameServerStats_Messages {
     // sent from server as a request, response sent by the user
     message InitialAllStats {
         uint64 steam_api_call = 1;
-        
+
         // optional because the server send doesn't send any data, just steam api call id
         optional AllStats all_data = 2;
     }
@@ -302,7 +302,7 @@ message Leaderboards_Messages {
         RequestUserScore = 2; // request score data from a single user
     }
 
-	Types type = 1;
+    Types type = 1;
     uint32 appid = 2;
     LeaderboardInfo leaderboard_info = 3;
     oneof data_messages {
@@ -322,6 +322,51 @@ message Steam_User_Stats_Messages {
 
     Types type = 1;
     optional Steam_User_Stats_Data steam_user_stats_data = 2;
+}
+
+message GameServer_Items_Messages {
+    message Attribute {
+        uint32 def = 1;
+        float value = 2;
+    }
+    message Item {
+        uint64 id = 1;
+        uint32 def = 2;
+        uint32 level = 3;
+        int32 quality = 4;
+        uint32 inv_pos = 5;
+        uint32 quantity = 6;
+        repeated Attribute attributes = 7;
+    }
+    message InventoryRequest {
+        uint64 steam_api_call = 1;
+    }
+    message InventoryResponse {
+        uint64 steam_api_call = 1;
+        repeated Item items = 2;
+    }
+    message InventoryPosUpdate {
+        uint64 item_id = 1;
+        uint32 item_inv_pos = 2;
+    }
+    message ItemDeletion {
+        uint64 item_id = 1;
+    }
+
+    enum Types {
+        Request_Inventory = 0;
+        Response_Inventory = 1;
+        Request_UpdateInventoryPos = 2;
+        Request_DeleteItem = 3;
+    }
+
+    Types type = 1;
+    oneof data_messages {
+        InventoryRequest inventory_request = 2;
+        InventoryResponse inventory_response = 3;
+        InventoryPosUpdate inventory_pos_update = 4;
+        ItemDeletion item_deletion = 5;
+    }
 }
 
 message Common_Message {
@@ -344,6 +389,7 @@ message Common_Message {
         GameServerStats_Messages gameserver_stats_messages = 16;
         Leaderboards_Messages leaderboards_messages = 17;
         Steam_User_Stats_Messages steam_user_stats_messages = 18;
+        GameServer_Items_Messages gameserver_items_messages = 19;
     }
 
     uint32 source_ip = 128;
@@ -353,9 +399,9 @@ message Common_Message {
 //Non networking related protobufs
 
 message SteamAppTicket_pb {
-	uint32 ticket_version_no = 1;
-	uint32 crc_encryptedticket = 2;
-	uint32 cb_encrypteduserdata = 3;
-	uint32 cb_encrypted_appownershipticket = 4;
-	bytes encrypted_ticket = 5;
+    uint32 ticket_version_no = 1;
+    uint32 crc_encryptedticket = 2;
+    uint32 cb_encrypteduserdata = 3;
+    uint32 cb_encrypted_appownershipticket = 4;
+    bytes encrypted_ticket = 5;
 }

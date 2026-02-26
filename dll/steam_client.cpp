@@ -137,6 +137,7 @@ Steam_Client::Steam_Client()
     steam_timeline = new Steam_Timeline(settings_client, network, callback_results_client, callbacks_client, run_every_runcb);
     steam_app_disable_update = new Steam_App_Disable_Update(settings_client, network, callback_results_client, callbacks_client, run_every_runcb);
     steam_billing = new Steam_Billing(settings_client, network, callback_results_client, callbacks_client, run_every_runcb);
+    steam_user_items = new Steam_User_Items(settings_client, network, local_storage, callbacks_client, callback_results_client);
 
     // server
     PRINT_DEBUG("init gameserver");
@@ -156,6 +157,7 @@ Steam_Client::Steam_Client()
     steam_gameserver_game_coordinator = new Steam_Game_Coordinator(settings_server, network, callback_results_server, callbacks_server, run_every_runcb);
     steam_masterserver_updater = new Steam_Masterserver_Updater(settings_server, network, callback_results_server, callbacks_server, run_every_runcb, steam_gameserver);
     steam_gameserver_gamestats = new Steam_GameStats(settings_server, network, callback_results_server, callbacks_server, run_every_runcb);
+    steam_gameserver_items = new Steam_GameServer_Items(settings_server, network, callbacks_server, callback_results_server, run_every_runcb);
 
     PRINT_DEBUG("init AppTicket");
     steam_app_ticket = new Steam_AppTicket(settings_client);
@@ -199,6 +201,7 @@ Steam_Client::~Steam_Client()
     DEL_INST(steam_masterserver_updater);
     DEL_INST(steam_gameserver);
     DEL_INST(steam_gameserver_gamestats);
+    DEL_INST(steam_gameserver_items);
 
     DEL_INST(steam_matchmaking);
     DEL_INST(steam_matchmaking_servers);
@@ -231,6 +234,7 @@ Steam_Client::~Steam_Client()
     DEL_INST(steam_timeline);
     DEL_INST(steam_app_disable_update);
     DEL_INST(steam_billing);
+    DEL_INST(steam_user_items);
 
     DEL_INST(ugc_bridge);
 

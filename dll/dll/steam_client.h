@@ -51,14 +51,16 @@
 #include "steam_parties.h"
 #include "steam_remoteplay.h"
 #include "steam_tv.h"
-#include "steam_billing.h"
-
-#include "steam_gameserver.h"
-#include "steam_gameserverstats.h"
 #include "steam_gamestats.h"
 #include "steam_timeline.h"
 #include "steam_app_disable_update.h"
+#include "steam_billing.h"
+#include "steam_user_items.h"
+
+#include "steam_gameserver.h"
 #include "steam_masterserver_updater.h"
+#include "steam_gameserverstats.h"
+#include "steam_gameserver_items.h"
 
 #include "overlay/steam_overlay.h"
 #include "playtime.h"
@@ -153,6 +155,7 @@ public:
     Steam_Timeline *steam_timeline{};
     Steam_App_Disable_Update *steam_app_disable_update{};
     Steam_Billing *steam_billing{};
+    Steam_User_Items *steam_user_items{};
 
     Steam_GameServer *steam_gameserver{};
     Steam_User *steam_gameserver_user{};
@@ -169,6 +172,7 @@ public:
     Steam_Game_Coordinator *steam_gameserver_game_coordinator{};
     Steam_Masterserver_Updater *steam_masterserver_updater{};
     Steam_GameStats *steam_gameserver_gamestats{};
+    Steam_GameServer_Items *steam_gameserver_items{};
     
     Steam_AppTicket *steam_app_ticket{};
 
