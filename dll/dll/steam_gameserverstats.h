@@ -36,8 +36,6 @@ public ISteamGameServerStats
 		std::chrono::high_resolution_clock::time_point created{};
 		SteamAPICall_t steamAPICall{};
 		CSteamID steamIDUser{};
-
-		bool timeout = false;
 	};
 
     struct RequestAchievement {
