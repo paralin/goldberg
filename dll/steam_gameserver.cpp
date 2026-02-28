@@ -22,6 +22,59 @@
 #define SEND_SERVER_RATE 5.0
 
 
+bool Steam_GameServer::set_appid(int32 input_appid, const char *game_dir, bool autodetect)
+{
+    if (server_data.appid() != 0) {
+        if (input_appid == 0 || input_appid == server_data.appid())
+            return true;
+    }
+
+    uint32 appid = input_appid;
+
+    // If appid has not been provided by the game code, try reading it from steam_appid.txt.
+    // Some dedicated servers write it there and expect steamclient.dll to read it.
+    if (!appid && autodetect) {
+        char buf[10] = {};
+
+        // Try game dir.
+        if (game_dir && game_dir[0]) {
+            std::string file_path = std::string(game_dir) + PATH_SEPARATOR + "steam_appid.txt";
+
+            memset(buf, 0, sizeof(buf));
+            Local_Storage::get_file_data(file_path, buf, sizeof(buf) - 1);
+            appid = atoi(buf);
+        }
+
+        // Try current dir.
+        if (!appid) {
+            std::string file_path = "steam_appid.txt";
+
+            memset(buf, 0, sizeof(buf));
+            Local_Storage::get_file_data(file_path, buf, sizeof(buf) - 1);
+            appid = atoi(buf);
+        }
+
+        // Finally, fall back to config appid.
+        if (!appid) {
+            appid = settings->get_local_game_id().AppID();
+        }
+
+        if (!appid) {
+            PRINT_DEBUG("error cannot determine server appid", appid);
+        }
+    }
+
+    if (!appid)
+        return false;
+
+    server_data.set_appid(appid);
+    settings->set_game_id(CGameID(appid));
+    network->setAppID(appid);
+
+    PRINT_DEBUG("set server appid to %u", appid);
+    return true;
+}
+
 void Steam_GameServer::set_version(const char *pchVersionString)
 {
     PRINT_DEBUG("'%s'", pchVersionString);
@@ -103,21 +156,25 @@ bool Steam_GameServer::InitGameServer( uint32 unIP, uint16 usGamePort, uint16 us
     PRINT_DEBUG("%u %u %u %u %u '%s'", unIP, usGamePort, usQueryPort, unFlags, nGameAppId, pchVersionString);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    if (logged_in) return false; // may not be changed after logged in.
+    if (logged_in) // may not be changed after logged in.
+        return false;
 
-    server_data.set_appid(nGameAppId);
-    set_version(pchVersionString);
+    if (nGameAppId == 0)
+        return false;
+
     server_data.set_ip(unIP);
     server_data.set_port(usGamePort);
     server_data.set_query_port(usQueryPort);
+    set_appid(nGameAppId, "", false);
+    set_version(pchVersionString);
     server_data.set_offline(false);
+
+    //TODO: flags should be k_unServerFlag
+    flags = unFlags;
 
     if (!settings->disable_source_query)
         network->startQuery({ unIP, usQueryPort });
 
-    if (!settings->get_local_game_id().AppID()) settings->set_game_id(CGameID(nGameAppId));
-    //TODO: flags should be k_unServerFlag
-    flags = unFlags;
     policy_response_called = false;
     call_servers_connected = false;
     call_servers_disconnected = false;
@@ -512,18 +569,21 @@ bool Steam_GameServer::BSetServerType( uint32 unServerFlags, uint32 unGameIP, ui
         pchGameDir, pchVersion, bLANMode);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    // Note: appid 55100 doesn't call InitGameServer(), it immediately calls this function
-    InitGameServer(unGameIP, unGamePort, usQueryPort, unServerFlags, settings->get_local_game_id().AppID(), pchVersion);
+    if (!set_appid(0, pchGameDir, true))
+        return false;
 
     server_data.set_ip(unGameIP);
     server_data.set_port(unGamePort);
-    server_data.set_query_port(usQueryPort);
     server_data.set_spectator_port(unSpectatorPort);
-    set_version(pchVersion);
-
+    server_data.set_query_port(usQueryPort);
     server_data.set_game_dir(pchGameDir ? pchGameDir : "");
+    set_version(pchVersion);
+    server_data.set_offline(false);
 
     flags = unServerFlags;
+
+    if (!settings->disable_source_query && !network->isQueryAlive())
+        network->startQuery({ unGameIP, usQueryPort });
 
     //TODO?
     return true;
@@ -534,9 +594,11 @@ bool Steam_GameServer::BSetServerType( int32 nGameAppId, uint32 unServerFlags, u
 {
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
-    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
-    server_data.set_appid(nGameAppId);
-    return ret;
+
+    if (!set_appid(nGameAppId, pchGameDir, true))
+        return false;
+
+    return BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
 }
 
 // Updates server status values which shows up in the server browser and matchmaking APIs
@@ -846,12 +908,12 @@ void Steam_GameServer::RunCallbacks()
         policy_response_called = true;
     }
 
-    if (logged_in && server_data.port() != 0 && check_timedout(last_sent_server_info, SEND_SERVER_RATE)) {
+    if (logged_in &&
+        server_data.appid() != 0 && server_data.port() != 0 &&
+        check_timedout(last_sent_server_info, SEND_SERVER_RATE)) {
         PRINT_DEBUG("Sending Gameserver");
         Common_Message msg{};
         msg.set_source_id(settings->get_local_steam_id().ConvertToUint64());
-        if (server_data.appid() == 0)
-            server_data.set_appid(settings->get_local_game_id().AppID());
         msg.set_allocated_gameserver(new Gameserver(server_data));
         //msg.mutable_gameserver()->set_num_players(auth_manager->countInboundAuth());
         network->sendToAllIndividuals(&msg, true);
@@ -909,8 +971,6 @@ bool Steam_GameServer::GSSendUserDisconnect( CSteamID steamID )
 bool Steam_GameServer::GSSendUserStatusResponse( CSteamID steamID, int nSecondsConnected, int nSecondsSinceLast )
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
-
     return false;
 }
 
@@ -921,7 +981,7 @@ bool Steam_GameServer::Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServer
         pchServerName, pchGameDir, pchMapName, pchVersion);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    server_data.set_appid(nAppIdServed);
+    set_appid(nAppIdServed, pchGameDir, false);
     server_data.set_num_players(cPlayers);
     server_data.set_max_player_count(cPlayersMax);
     server_data.set_bot_player_count(cBotPlayers);
@@ -929,13 +989,12 @@ bool Steam_GameServer::Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServer
     server_data.set_query_port(STEAMGAMESERVER_QUERY_PORT_SHARED);
     server_data.set_spectator_port(0);
     server_data.set_server_name(pchServerName);
-    server_data.set_spectator_server_name("");
-    server_data.set_game_dir(pchGameDir ? pchGameDir : "");
+    server_data.set_spectator_server_name(pchServerName);
+    server_data.set_game_dir(pchGameDir);
     server_data.set_map_name(pchMapName);
     set_version(pchVersion);
     server_data.set_offline(false);
 
-    if (!settings->get_local_game_id().AppID()) settings->set_game_id(CGameID(nAppIdServed));
     flags = unServerFlags;
 
     return true;
@@ -1007,7 +1066,7 @@ bool Steam_GameServer::GSUpdateStatus( int cPlayers, int cPlayersMax, int cBotPl
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    UpdateServerStatus(cPlayers, cPlayersMax, cBotPlayers, pchServerName, "", pchMapName);
+    UpdateServerStatus(cPlayers, cPlayersMax, cBotPlayers, pchServerName, pchServerName, pchMapName);
     return true;
 }
 
@@ -1016,9 +1075,10 @@ bool Steam_GameServer::GSSetServerType( int32 nGameAppId, uint32 unServerFlags, 
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, 0, STEAMGAMESERVER_QUERY_PORT_SHARED, pchGameDir, pchVersion, false);
-    server_data.set_appid(nGameAppId);
-    return ret;
+    if (!set_appid(nGameAppId, pchGameDir, true))
+        return false;
+
+    return BSetServerType(unServerFlags, unGameIP, unGamePort, 0, STEAMGAMESERVER_QUERY_PORT_SHARED, pchGameDir, pchVersion, false);
 }
 
 bool Steam_GameServer::GSSetServerType2( int32 nGameAppId, uint32 unServerFlags, uint32 unGameIP, uint16 unGamePort, uint16 unSpectatorPort, uint16 usQueryPort, const char *pchGameDir, const char *pchVersion, bool bLANMode )
@@ -1026,10 +1086,10 @@ bool Steam_GameServer::GSSetServerType2( int32 nGameAppId, uint32 unServerFlags,
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    SetSpectatorPort(unSpectatorPort);
-    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
-    server_data.set_appid(nGameAppId);
-    return ret;
+    if (!set_appid(nGameAppId, pchGameDir, true))
+        return false;
+
+    return BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
 }
 
 bool Steam_GameServer::GSUpdateStatus2( int cPlayers, int cPlayersMax, int cBotPlayers, const char *pchServerName, const char *pSpectatorServerName, const char *pchMapName )
@@ -1064,7 +1124,7 @@ void Steam_GameServer::GSUpdateSpectatorPort( uint16 unSpectatorPort )
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    UpdateSpectatorPort(unSpectatorPort);
+    SetSpectatorPort(unSpectatorPort);
 }
 
 void Steam_GameServer::GSSetGameType( const char *pchType )
@@ -1098,10 +1158,10 @@ bool Steam_GameServer::GSSetServerType( int32 nGameAppId, uint32 unServerFlags, 
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    SetSpectatorPort(unSpectatorPort);
-    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
-    server_data.set_appid(nGameAppId);
-    return ret;
+    if (!set_appid(nGameAppId, pchGameDir, true))
+        return false;
+
+    return BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
 }
 
 bool Steam_GameServer::GSUpdateStatus( int cPlayers, int cPlayersMax, int cBotPlayers, const char *pchServerName, const char *pSpectatorServerName, const char *pchMapName )

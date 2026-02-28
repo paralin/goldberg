@@ -73,6 +73,7 @@ public ISteamGameServer
 
     std::vector<struct Gameserver_Outgoing_Packet> outgoing_packets{};
 
+    bool set_appid(int32 appid, const char *version_str, bool autodetect);
     void set_version(const char *pchVersionString);
 
 public:
