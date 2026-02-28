@@ -100,7 +100,7 @@ std::vector<std::pair<CSteamID, Gameserver_Player_Info_t>>* Steam_GameServer::ge
 /// This is called by SteamGameServer_Init, and you will usually not need to call it directly
 bool Steam_GameServer::InitGameServer( uint32 unIP, uint16 usGamePort, uint16 usQueryPort, uint32 unFlags, AppId_t nGameAppId, const char *pchVersionString )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%u %u %u %u %u '%s'", unIP, usGamePort, usQueryPort, unFlags, nGameAppId, pchVersionString);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     if (logged_in) return false; // may not be changed after logged in.
@@ -332,7 +332,7 @@ void Steam_GameServer::SetPasswordProtected( bool bPasswordProtected )
 /// is not used.
 void Steam_GameServer::SetSpectatorPort( uint16 unSpectatorPort )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%u", unSpectatorPort);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
     server_data.set_spectator_port(unSpectatorPort);
 }
@@ -455,7 +455,7 @@ CSteamID Steam_GameServer::CreateUnauthenticatedUserConnection()
 // account being logged into multiple servers, showing who is currently on a server, etc.
 void Steam_GameServer::SendUserDisconnect( CSteamID steamIDUser )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%llu", steamIDUser.ConvertToUint64());
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     remove_player(steamIDUser);
@@ -470,7 +470,7 @@ void Steam_GameServer::SendUserDisconnect( CSteamID steamIDUser )
 // Return Value: true if successful, false if failure (ie, steamIDUser wasn't for an active player)
 bool Steam_GameServer::BUpdateUserData( CSteamID steamIDUser, const char *pchPlayerName, uint32 uScore )
 {
-    PRINT_DEBUG("%llu %s %u", steamIDUser.ConvertToUint64(), pchPlayerName, uScore);
+    PRINT_DEBUG("%llu '%s' %u", steamIDUser.ConvertToUint64(), pchPlayerName, uScore);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     auto player_it = std::find_if(players.begin(), players.end(), [&steamIDUser](std::pair<CSteamID, Gameserver_Player_Info_t>& player)
@@ -508,7 +508,8 @@ bool Steam_GameServer::BUpdateUserData( CSteamID steamIDUser, const char *pchPla
 bool Steam_GameServer::BSetServerType( uint32 unServerFlags, uint32 unGameIP, uint16 unGamePort, 
                             uint16 unSpectatorPort, uint16 usQueryPort, const char *pchGameDir, const char *pchVersion, bool bLANMode )
 {
-    PRINT_DEBUG("%u %u '%s' '%s'", unGameIP, unGamePort, pchVersion, pchGameDir);
+    PRINT_DEBUG("%u %u %u %u %u '%s' '%s' %i", unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort,
+        pchGameDir, pchVersion, bLANMode);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     // Note: appid 55100 doesn't call InitGameServer(), it immediately calls this function
@@ -531,6 +532,8 @@ bool Steam_GameServer::BSetServerType( uint32 unServerFlags, uint32 unGameIP, ui
 bool Steam_GameServer::BSetServerType( int32 nGameAppId, uint32 unServerFlags, uint32 unGameIP, uint16 unGamePort, 
                                     uint16 unSpectatorPort, uint16 usQueryPort, const char *pchGameDir, const char *pchVersion, bool bLANMode )
 {
+    PRINT_DEBUG_ENTRY();
+    std::lock_guard<std::recursive_mutex> lock(global_mutex);
     bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, unSpectatorPort, usQueryPort, pchGameDir, pchVersion, bLANMode);
     server_data.set_appid(nGameAppId);
     return ret;
@@ -541,8 +544,9 @@ void Steam_GameServer::UpdateServerStatus( int cPlayers, int cPlayersMax, int cB
                                     const char *pchServerName, const char *pSpectatorServerName, 
                                     const char *pchMapName )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%i %i %i '%s' '%s' '%s'", cPlayers, cPlayersMax, cBotPlayers, pchServerName,  pSpectatorServerName, pchMapName);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
+
     server_data.set_num_players(cPlayers);
     server_data.set_max_player_count(cPlayersMax);
     server_data.set_bot_player_count(cBotPlayers);
@@ -562,8 +566,7 @@ void Steam_GameServer::UpdateSpectatorPort( uint16 unSpectatorPort )
 // it allows users to filter in the matchmaking/server-browser interfaces based on the value
 void Steam_GameServer::SetGameType( const char *pchGameType )
 {
-    PRINT_DEBUG_ENTRY();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
+    PRINT_DEBUG_TODO();
 }
 
 // Ask if a user has a specific achievement for this game, will get a callback on reply
@@ -636,7 +639,7 @@ void Steam_GameServer::CancelAuthTicket( HAuthTicket hAuthTicket )
 // to determine if the user owns downloadable content specified by the provided AppID.
 EUserHasLicenseForAppResult Steam_GameServer::UserHasLicenseForApp( CSteamID steamID, AppId_t appID )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%llu %u", steamID.ConvertToUint64(), appID);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
     return k_EUserHasLicenseResultHasLicense;
 }
@@ -646,11 +649,10 @@ EUserHasLicenseForAppResult Steam_GameServer::UserHasLicenseForApp( CSteamID ste
 // returns false if we're not connected to the steam servers and thus cannot ask
 bool Steam_GameServer::RequestUserGroupStatus( CSteamID steamIDUser, CSteamID steamIDGroup )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%llu %llu", steamIDUser.ConvertToUint64(), steamIDGroup.ConvertToUint64());
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
     return true;
 }
-
 
 
 // these two functions s are deprecated, and will not return results
@@ -658,14 +660,12 @@ bool Steam_GameServer::RequestUserGroupStatus( CSteamID steamIDUser, CSteamID st
 void Steam_GameServer::GetGameplayStats( )
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
 }
 
 STEAM_CALL_RESULT( GSReputation_t )
 SteamAPICall_t Steam_GameServer::GetServerReputation()
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
     return 0;
 }
 
@@ -812,7 +812,6 @@ STEAM_CALL_RESULT( AssociateWithClanResult_t )
 SteamAPICall_t Steam_GameServer::AssociateWithClan( CSteamID steamIDClan )
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
     return 0;
 }
 
@@ -822,7 +821,6 @@ STEAM_CALL_RESULT( ComputeNewPlayerCompatibilityResult_t )
 SteamAPICall_t Steam_GameServer::ComputeNewPlayerCompatibility( CSteamID steamIDNewPlayer )
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
     return 0;
 }
 
@@ -920,7 +918,9 @@ bool Steam_GameServer::GSSendUserStatusResponse( CSteamID steamID, int nSecondsC
 
 bool Steam_GameServer::Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServerFlags, int cPlayers, int cPlayersMax, int cBotPlayers, int unGamePort, const char *pchServerName, const char *pchGameDir, const char *pchMapName, const char *pchVersion )
 {
-    PRINT_DEBUG_ENTRY();
+    PRINT_DEBUG("%i %u %i %i %i %i '%s' '%s' '%s' '%s'",
+        nAppIdServed, unServerFlags, cPlayers, cPlayersMax, cBotPlayers, unGamePort,
+        pchServerName, pchGameDir, pchMapName, pchVersion);
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
     server_data.set_appid(nAppIdServed);
@@ -992,8 +992,6 @@ bool Steam_GameServer::GSSendSteam3UserConnect( CSteamID steamID, uint32 unIPPub
 bool Steam_GameServer::GSRemoveUserConnect( uint32 unUserID )
 {
     PRINT_DEBUG_TODO();
-    std::lock_guard<std::recursive_mutex> lock(global_mutex);
-
     return false;
 }
 
