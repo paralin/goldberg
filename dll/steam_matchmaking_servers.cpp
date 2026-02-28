@@ -606,7 +606,7 @@ void Steam_Matchmaking_Servers::server_details(Gameserver *g, gameserveritem_t *
     int latency = MIN_LATENCY;
 
     uint16 query_port = g->query_port();
-    if (g->query_port() == 0xFFFF) {
+    if (g->query_port() == STEAMGAMESERVER_QUERY_PORT_SHARED) {
         query_port = g->port();
     }
 
@@ -767,7 +767,7 @@ void Steam_Matchmaking_Servers::server_details_players(Gameserver *g, Steam_Matc
 void Steam_Matchmaking_Servers::server_details_rules(Gameserver *g, Steam_Matchmaking_Servers_Direct_IP_Request *r)
 {
     uint16 query_port = g->query_port();
-    if (g->query_port() == 0xFFFF) {
+    if (g->query_port() == STEAMGAMESERVER_QUERY_PORT_SHARED) {
         query_port = g->port();
     }
 
@@ -915,7 +915,7 @@ void Steam_Matchmaking_Servers::RunCallbacks()
         for (auto &g : gameservers) {
             PRINT_DEBUG("%u:%u", g.server.ip(), g.server.query_port());
             uint16 query_port = g.server.query_port();
-            if (query_port == 0xFFFF) {
+            if (query_port == STEAMGAMESERVER_QUERY_PORT_SHARED) {
                 query_port = g.server.port();
             }
 

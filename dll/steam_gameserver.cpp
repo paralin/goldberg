@@ -928,7 +928,8 @@ bool Steam_GameServer::Obsolete_GSSetStatus( int32 nAppIdServed, uint32 unServer
     server_data.set_max_player_count(cPlayersMax);
     server_data.set_bot_player_count(cBotPlayers);
     server_data.set_port(unGamePort);
-    server_data.set_query_port(0xFFFF);
+    server_data.set_query_port(STEAMGAMESERVER_QUERY_PORT_SHARED);
+    server_data.set_spectator_port(0);
     server_data.set_server_name(pchServerName);
     server_data.set_spectator_server_name("");
     server_data.set_game_dir(pchGameDir ? pchGameDir : "");
@@ -1019,7 +1020,7 @@ bool Steam_GameServer::GSSetServerType( int32 nGameAppId, uint32 unServerFlags, 
     PRINT_DEBUG_ENTRY();
     std::lock_guard<std::recursive_mutex> lock(global_mutex);
 
-    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, 0xFFFF, 0xFFFF, pchGameDir, pchVersion, false);
+    bool ret = BSetServerType(unServerFlags, unGameIP, unGamePort, 0, STEAMGAMESERVER_QUERY_PORT_SHARED, pchGameDir, pchVersion, false);
     server_data.set_appid(nGameAppId);
     return ret;
 }
