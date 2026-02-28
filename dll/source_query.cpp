@@ -155,7 +155,7 @@ std::vector<uint8_t> Source_Query::handle_source_query(const void* buffer, size_
             serialize_response(output_buffer, static_cast<uint8_t>(2));
             serialize_response(output_buffer, gs.server_name());
             serialize_response(output_buffer, gs.map_name());
-            serialize_response(output_buffer, gs.mod_dir());
+            serialize_response(output_buffer, !gs.mod_dir().empty() ? gs.mod_dir() : gs.game_dir());
             serialize_response(output_buffer, gs.product());
             serialize_response(output_buffer, static_cast<uint16_t>(gs.appid()));
             serialize_response(output_buffer, static_cast<uint8_t>(players.size()));
