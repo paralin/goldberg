@@ -463,6 +463,26 @@ void *Steam_Client::GetISteamGenericInterface( HSteamUser hSteamUser, HSteamPipe
         if (strcmp(pchVersion, STEAMTV_INTERFACE_VERSION) == 0) {
             return reinterpret_cast<void *>(static_cast<ISteamTV *>(steam_tv));
         }
+    } else if (strstr(pchVersion, "STEAMUSERITEMS_INTERFACE_VERSION") == pchVersion) {
+        if (strcmp(pchVersion, "STEAMUSERITEMS_INTERFACE_VERSION001") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamUserItems001 *>(steam_user_items));
+        } else if (strcmp(pchVersion, "STEAMUSERITEMS_INTERFACE_VERSION002") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamUserItems002 *>(steam_user_items));
+        } else if (strcmp(pchVersion, "STEAMUSERITEMS_INTERFACE_VERSION003") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamUserItems003 *>(steam_user_items));
+        } else if (strcmp(pchVersion, STEAMUSERITEMS_INTERFACE_VERSION) == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamUserItems *>(steam_user_items));
+        }
+    } else if (strstr(pchVersion, "STEAMGAMESERVERITEMS_INTERFACE_VERSION") == pchVersion) {
+        if (strcmp(pchVersion, "STEAMGAMESERVERITEMS_INTERFACE_VERSION001") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamGameServerItems001 *>(steam_gameserver_items));
+        } else if (strcmp(pchVersion, "STEAMGAMESERVERITEMS_INTERFACE_VERSION002") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamGameServerItems002 *>(steam_gameserver_items));
+        } else if (strcmp(pchVersion, "STEAMGAMESERVERITEMS_INTERFACE_VERSION003") == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamGameServerItems003 *>(steam_gameserver_items));
+        } else if (strcmp(pchVersion, STEAMGAMESERVERITEMS_INTERFACE_VERSION) == 0) {
+            return reinterpret_cast<void *>(static_cast<ISteamGameServerItems *>(steam_gameserver_items));
+        }
     } else if (strstr(pchVersion, "STEAMREMOTESTORAGE_INTERFACE_VERSION") == pchVersion) {
         return GetISteamRemoteStorage(hSteamUser, hSteamPipe, pchVersion);
     } else if (strstr(pchVersion, "SteamGameServerStats") == pchVersion) {

@@ -377,6 +377,9 @@ public:
     // voice chat
     bool enable_voice_chat = false;
 
+    // only use 32 bits for inventory item ids
+    bool use_32bit_inventory_item_ids = false;
+
 
 #ifdef LOBBY_CONNECT
     static constexpr const bool is_lobby_connect = true;

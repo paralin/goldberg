@@ -403,49 +403,37 @@ SteamAPICall_t Steam_GameServerStats::StoreUserStats( CSteamID steamIDUser )
 void Steam_GameServerStats::remove_timedout_userstats_requests()
 {
     // send all pending RequestUserStats() requests
-    for (auto &pendReq : pending_RequestUserStats) {
-        if (check_timedout(pendReq.created, PENDING_RequestUserStats_TIMEOUT)) {
-            pendReq.timeout = true;
-
+    for (auto it = pending_RequestUserStats.begin(); it != pending_RequestUserStats.end();) {
+        if (check_timedout(it->created, PENDING_RequestUserStats_TIMEOUT)) {
             GSStatsReceived_t data{};
             data.m_eResult = k_EResultTimeout;
-            data.m_steamIDUser = pendReq.steamIDUser;
+            data.m_steamIDUser = it->steamIDUser;
 
-            callback_results->addCallResult(pendReq.steamAPICall, data.k_iCallback, &data, sizeof(data));
+            callback_results->addCallResult(it->steamAPICall, data.k_iCallback, &data, sizeof(data));
             callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
-            
-            PRINT_DEBUG("RequestUserStats timeout, %llu", pendReq.steamIDUser.ConvertToUint64());
+
+            PRINT_DEBUG("RequestUserStats timeout, %llu", it->steamIDUser.ConvertToUint64());
+            it = pending_RequestUserStats.erase(it);
+        } else {
+            it++;
         }
     }
-
-    // remove all timedout requests
-    auto itrm = std::remove_if(
-        pending_RequestUserStats.begin(), pending_RequestUserStats.end(),
-        [](const struct RequestAllStats &item) { return item.timeout; }
-    );
-    pending_RequestUserStats.erase(itrm, pending_RequestUserStats.end());
 
     // send all pending BGetUserAchievementStatus requests
-    for (auto &pendReq : pending_RequestAchievement) {
-        if (check_timedout(pendReq.created, PENDING_RequestUserStats_TIMEOUT)) {
-            pendReq.timeout = true;
-
+    for (auto it = pending_RequestAchievement.begin(); it != pending_RequestAchievement.end();) {
+        if (check_timedout(it->created, PENDING_RequestUserStats_TIMEOUT)) {
             GSClientAchievementStatus_t data{};
             data.m_bUnlocked = false;
-            data.m_SteamID = pendReq.steamIDUser.ConvertToUint64();
-            pendReq.achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
+            data.m_SteamID = it->steamIDUser.ConvertToUint64();
+            it->achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
             callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
 
-            PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", pendReq.steamIDUser.ConvertToUint64());
+            PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", it->steamIDUser.ConvertToUint64());
+            it = pending_RequestAchievement.erase(it);
+        } else {
+            it++;
         }
     }
-
-    // remove all timedout requests
-    auto itrm2 = std::remove_if(
-        pending_RequestAchievement.begin(), pending_RequestAchievement.end(),
-        [](const struct RequestAchievement &item) { return item.timeout; }
-    );
-    pending_RequestAchievement.erase(itrm2, pending_RequestAchievement.end());
 }
 
 void Steam_GameServerStats::collect_and_send_updated_user_stats()
@@ -703,35 +691,35 @@ void Steam_GameServerStats::network_callback_low_level(Common_Message *msg)
     case Low_Level::DISCONNECT: {
         all_users_data.erase(steamid);
 
-        auto it_rm = std::remove_if(
-            pending_RequestUserStats.begin(), pending_RequestUserStats.end(),
-            [=](const RequestAllStats &item) { return item.steamIDUser.ConvertToUint64() == steamid; }
-        );
-        while (pending_RequestUserStats.end() != it_rm) {
-            GSStatsReceived_t data{};
-            data.m_eResult = k_EResultTimeout;
-            data.m_steamIDUser = it_rm->steamIDUser;
-            
-            callback_results->addCallResult(it_rm->steamAPICall, data.k_iCallback, &data, sizeof(data));
-            callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
-            
-            PRINT_DEBUG("RequestUserStats timeout, %llu", it_rm->steamIDUser.ConvertToUint64());
-            it_rm = pending_RequestUserStats.erase(it_rm);
+        for (auto it = pending_RequestUserStats.begin(); it != pending_RequestUserStats.end();) {
+            if (steamid == it->steamIDUser.ConvertToUint64()) {
+                GSStatsReceived_t data{};
+                data.m_eResult = k_EResultTimeout;
+                data.m_steamIDUser = it->steamIDUser;
+
+                callback_results->addCallResult(it->steamAPICall, data.k_iCallback, &data, sizeof(data));
+                callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+
+                PRINT_DEBUG("RequestUserStats timeout, %llu", it->steamIDUser.ConvertToUint64());
+                it = pending_RequestUserStats.erase(it);
+            } else {
+                it++;
+            }
         }
 
-        auto it_rm2 = std::remove_if(
-            pending_RequestAchievement.begin(), pending_RequestAchievement.end(),
-            [=](const RequestAchievement &item) { return item.steamIDUser.ConvertToUint64() == steamid; }
-        );
-        while (pending_RequestAchievement.end() != it_rm2) {
-            GSClientAchievementStatus_t data{};
-            data.m_bUnlocked = false;
-            data.m_SteamID = it_rm2->steamIDUser.ConvertToUint64();
-            it_rm2->achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
-            callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
+        for (auto it = pending_RequestAchievement.begin(); it != pending_RequestAchievement.end();) {
+            if (steamid == it->steamIDUser.ConvertToUint64()) {
+                GSClientAchievementStatus_t data{};
+                data.m_bUnlocked = false;
+                data.m_SteamID = it->steamIDUser.ConvertToUint64();
+                it->achievement_name.copy(data.m_pchAchievement, sizeof(data.m_pchAchievement) - 1);
+                callbacks->addCBResult(data.k_iCallback, &data, sizeof(data));
 
-            PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", it_rm2->steamIDUser.ConvertToUint64());
-            it_rm2 = pending_RequestAchievement.erase(it_rm2);
+                PRINT_DEBUG("BGetUserAchievementStatus timeout, %llu", it->steamIDUser.ConvertToUint64());
+                it = pending_RequestAchievement.erase(it);
+            } else {
+                it++;
+            }
         }
         
         // PRINT_DEBUG("removed user %llu", steamid);

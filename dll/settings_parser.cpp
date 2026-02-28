@@ -1634,6 +1634,9 @@ static void parse_simple_features(class Settings *settings_client, class Setting
 
     settings_client->free_weekend = ini.GetBoolValue("main::misc", "free_weekend", settings_client->free_weekend);
     settings_server->free_weekend = ini.GetBoolValue("main::misc", "free_weekend", settings_server->free_weekend);
+
+    settings_client->use_32bit_inventory_item_ids = ini.GetBoolValue("main::misc", "use_32bit_inventory_item_ids", settings_client->use_32bit_inventory_item_ids);
+    settings_server->use_32bit_inventory_item_ids = ini.GetBoolValue("main::misc", "use_32bit_inventory_item_ids", settings_server->use_32bit_inventory_item_ids);
 }
 
 // [main::stats]

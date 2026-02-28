@@ -15,12 +15,24 @@
    License along with the Goldberg Emulator; if not, see
    <http://www.gnu.org/licenses/>.  */
 
-#ifndef _CLIENT_KNOWN_INTERFACES_H_
-#define _CLIENT_KNOWN_INTERFACES_H_
+#ifndef __INCLUDED_ECON_ITEM_H__
+#define __INCLUDED_ECON_ITEM_H__
 
-#include <unordered_set>
-#include <string>
+struct Econ_Item_Attribute
+{
+    uint32 def;
+    float value;
+};
 
-extern const std::unordered_set<std::string> client_known_interfaces;
+struct Econ_Item
+{
+    uint64 id;
+    uint32 def;
+    uint32 level;
+    EItemQuality quality;
+    uint32 inv_pos;
+    uint32 quantity;
+    std::vector<Econ_Item_Attribute> attributes;
+};
 
-#endif // _CLIENT_KNOWN_INTERFACES_H_
+#endif
