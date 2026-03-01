@@ -43,12 +43,14 @@ Steam_GameServer_Items::Steam_GameServer_Items(class Settings *settings, class N
 
     this->network->setCallback(CALLBACK_ID_GAMESERVER_ITEMS, settings->get_local_steam_id(), &Steam_GameServer_Items::steam_gameserver_items_network_callback, this);
     this->network->setCallback(CALLBACK_ID_USER_STATUS, settings->get_local_steam_id(), &Steam_GameServer_Items::steam_gameserver_items_network_callback, this);
+    this->run_every_runcb->add(Steam_GameServer_Items::steam_gameserver_items_run_every_runcb, this);
 }
 
 Steam_GameServer_Items::~Steam_GameServer_Items()
 {
     this->network->rmCallback(CALLBACK_ID_GAMESERVER_ITEMS, settings->get_local_steam_id(), &Steam_GameServer_Items::steam_gameserver_items_network_callback, this);
     this->network->rmCallback(CALLBACK_ID_USER_STATUS, settings->get_local_steam_id(), &Steam_GameServer_Items::steam_gameserver_items_network_callback, this);
+    this->run_every_runcb->remove(Steam_GameServer_Items::steam_gameserver_items_run_every_runcb, this);
 }
 
 SteamAPICall_t Steam_GameServer_Items::LoadItems( CSteamID ownerID )
