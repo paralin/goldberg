@@ -606,7 +606,7 @@ void Steam_Matchmaking_Servers::server_details(Gameserver *g, gameserveritem_t *
     int latency = MIN_LATENCY;
 
     uint16 query_port = g->query_port();
-    if (g->query_port() == 0xFFFF) {
+    if (g->query_port() == STEAMGAMESERVER_QUERY_PORT_SHARED) {
         query_port = g->port();
     }
 
@@ -637,7 +637,7 @@ void Steam_Matchmaking_Servers::server_details(Gameserver *g, gameserveritem_t *
                 PRINT_DEBUG("  ssq server info ok");
                 if (ssq_info_has_steamid(ssq_a2s_info)) g->set_id(ssq_a2s_info->steamid);
                 g->set_game_description(ssq_a2s_info->game);
-                g->set_mod_dir(ssq_a2s_info->folder);
+                g->set_game_dir(ssq_a2s_info->folder);
                 if (ssq_a2s_info->server_type == A2S_SERVER_TYPE_DEDICATED) g->set_dedicated_server(true);
                 else if (ssq_a2s_info->server_type == A2S_SERVER_TYPE_STV_RELAY) g->set_dedicated_server(true);
                 else g->set_dedicated_server(false);
@@ -694,7 +694,11 @@ void Steam_Matchmaking_Servers::server_details(Gameserver *g, gameserveritem_t *
     server->m_steamID = CSteamID((uint64)g->id());
     
     memset(server->m_szGameDir, 0, sizeof(server->m_szGameDir));
-    g->mod_dir().copy(server->m_szGameDir, sizeof(server->m_szGameDir) - 1);
+    if (!g->mod_dir().empty()) {
+        g->mod_dir().copy(server->m_szGameDir, sizeof(server->m_szGameDir) - 1);
+    } else {
+        g->game_dir().copy(server->m_szGameDir, sizeof(server->m_szGameDir) - 1);
+    }
 
     memset(server->m_szMap, 0, sizeof(server->m_szMap));
     g->map_name().copy(server->m_szMap, sizeof(server->m_szMap) - 1);
@@ -711,7 +715,7 @@ void Steam_Matchmaking_Servers::server_details(Gameserver *g, gameserveritem_t *
 void Steam_Matchmaking_Servers::server_details_players(Gameserver *g, Steam_Matchmaking_Servers_Direct_IP_Request *r)
 {
     uint16 query_port = g->query_port();
-    if (g->query_port() == 0xFFFF) {
+    if (g->query_port() == STEAMGAMESERVER_QUERY_PORT_SHARED) {
         query_port = g->port();
     }
 
@@ -767,7 +771,7 @@ void Steam_Matchmaking_Servers::server_details_players(Gameserver *g, Steam_Matc
 void Steam_Matchmaking_Servers::server_details_rules(Gameserver *g, Steam_Matchmaking_Servers_Direct_IP_Request *r)
 {
     uint16 query_port = g->query_port();
-    if (g->query_port() == 0xFFFF) {
+    if (g->query_port() == STEAMGAMESERVER_QUERY_PORT_SHARED) {
         query_port = g->port();
     }
 
@@ -915,7 +919,7 @@ void Steam_Matchmaking_Servers::RunCallbacks()
         for (auto &g : gameservers) {
             PRINT_DEBUG("%u:%u", g.server.ip(), g.server.query_port());
             uint16 query_port = g.server.query_port();
-            if (query_port == 0xFFFF) {
+            if (query_port == STEAMGAMESERVER_QUERY_PORT_SHARED) {
                 query_port = g.server.port();
             }
 
