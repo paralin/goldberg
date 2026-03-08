@@ -25,18 +25,18 @@ pkg_check_modules(OPUS REQUIRED opus)
 pkg_check_modules(PORTAUDIO REQUIRED portaudio-2.0)
 
 # mbedtls 3.x for auth ticket signing
-# Try unversioned names first, fall back to -3 suffix (Gentoo slotted installs)
-pkg_check_modules(MBEDTLS mbedtls)
+# Try -3 suffix first (Gentoo slotted installs), fall back to unversioned names
+pkg_check_modules(MBEDTLS mbedtls-3)
 if(NOT MBEDTLS_FOUND)
-  pkg_check_modules(MBEDTLS REQUIRED mbedtls-3)
+  pkg_check_modules(MBEDTLS REQUIRED mbedtls)
 endif()
-pkg_check_modules(MBEDCRYPTO mbedcrypto)
+pkg_check_modules(MBEDCRYPTO mbedcrypto-3)
 if(NOT MBEDCRYPTO_FOUND)
-  pkg_check_modules(MBEDCRYPTO REQUIRED mbedcrypto-3)
+  pkg_check_modules(MBEDCRYPTO REQUIRED mbedcrypto)
 endif()
-pkg_check_modules(MBEDX509 mbedx509)
+pkg_check_modules(MBEDX509 mbedx509-3)
 if(NOT MBEDX509_FOUND)
-  pkg_check_modules(MBEDX509 REQUIRED mbedx509-3)
+  pkg_check_modules(MBEDX509 REQUIRED mbedx509)
 endif()
 
 # libssq submodule
